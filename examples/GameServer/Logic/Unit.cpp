@@ -9,7 +9,7 @@
 #include "Unit.h"
 #include "Skill.h"
 #include "Action.h"
-
+#include "Application.h"
 
 
 
@@ -355,8 +355,9 @@ CUnit* CUnit::getUnit(int id)
     return id != 0 ? getWorld()->getUnit(id) : NULL;
 }
 
-void CUnit::addSkillCD(CSkill* pSkill)
+void CUnit::skillCD(CSkill* pSkill)
 {
+    LOG("%s的%s技能开始冷却(%.1fs)\n", getName(), pSkill->getName(), pSkill->getCoolDown());
     getWorld()->addSkillCD(pSkill);
 }
 
@@ -527,8 +528,8 @@ void CUnit::onDamagedDone(float fDamage, CUnit* pSource, uint32_t dwTriggerMask)
     }
     triggerOnDamagedDone(fDamage, pSource);
     
-    printf("%s受到%d点伤害\n", getName(), (int)round(fDamage));
-    printf("%s HP: %d/%d\n\n", getName(), (int)round(getHp()), (int)round(getMaxHp()));
+    LOG("%s受到%d点伤害", getName(), (int)round(fDamage));
+    LOG("%s HP: %d/%d\n", getName(), (int)round(getHp()), (int)round(getMaxHp()));
     
     if (m_pAI)
     {
@@ -728,6 +729,26 @@ CPassiveSkill* CUnit::getPassiveSkill(int id)
 
 void CUnit::addBuffSkill(CBuffSkill* pSkill)
 {
+    if (pSkill->isStackable() == false)
+    {
+        M_MAP_FOREACH(m_mapBuffSkills)
+        {
+            CBuffSkill* pBuff = M_MAP_EACH;
+            if (strcmp(pBuff->getRootId(), pSkill->getRootId()) == 0)
+            {
+                pBuff->onDelFromUnit(false);
+                delSkillFromTriggers(pBuff);
+
+                M_MAP_DEL_CUR(m_mapBuffSkills);
+                pBuff->release();
+                
+                m_mapBuffSkills.addObject(pSkill);
+                pSkill->onAddToUnit(this, false);
+                addSkillToTriggers(pSkill);
+                return;
+            }
+        }
+    }
     m_mapBuffSkills.addObject(pSkill);
     pSkill->onAddToUnit(this);  // 消息传递
     addSkillToTriggers(pSkill);
@@ -1135,7 +1156,7 @@ int CUnit::cast(int iActiveSkillId)
         return -1;
     }
     
-    if (pSkill->getCastTargetType() != getCastTarget().getTargetType())
+    if (getCastTarget().getTargetType() != pSkill->getCastTargetType())
     {
         return -1;
     }
@@ -1144,6 +1165,11 @@ int CUnit::cast(int iActiveSkillId)
     if (pSkill->cast() == false)
     {
         return -1;
+    }
+    
+    if (pSkill->isCoolingDown())
+    {
+        skillCD(pSkill);
     }
         
     return 0;
@@ -1549,10 +1575,10 @@ void CWorld::updateSkillCD(int id)
     }
     
     m_mapSkillsCD.erase(it);
-    pSkill->release();
+    skillReady(pSkill);
 }
 
-void CWorld::delSkillCD(CUnit* pUnit)
+void CWorld::cleanSkillsCD(CUnit* pUnit)
 {
     M_MAP_FOREACH(pUnit->getActiveSkills())
     {
@@ -1582,6 +1608,17 @@ void CWorld::delSkillCD(CUnit* pUnit)
     }
 }
 
+void CWorld::skillReady(CSkill* pSkill)
+{
+    CUnit* pOwner = getUnit(pSkill->getOwner()->getId());
+    if (pOwner != NULL)
+    {
+        // 存在于主世界中，则触发事件
+        pOwner->onSkillReady(pSkill);
+    }
+    pSkill->release();
+}
+
 void CWorld::onTick(float dt)
 {
     // 单位死亡后技能CD独立计算，所以放在此处独立计算，不整合到单位onTick中
@@ -1593,14 +1630,7 @@ void CWorld::onTick(float dt)
         {
             // 如果技能已经就绪，从中删除
             M_MAP_DEL_CUR(m_mapSkillsCD);
-            CUnit* pOwner = getUnit(pSkill->getOwner()->getId());
-            if (pOwner != NULL)
-            {
-                // 存在于主世界中，则触发事件
-                pOwner->onSkillReady(pSkill);
-            }
-            
-            pSkill->release();
+            skillReady(pSkill);
             continue;
         }
     }
@@ -1622,7 +1652,7 @@ void CWorld::onTick(float dt)
             {
                 // 如果不可以复活，该单位将不再拥有世界，清除该单位的所有CD中的技能
                 pUnit->setWorld(NULL);
-                delSkillCD(pUnit);
+                cleanSkillsCD(pUnit);
             }
             
             M_MAP_DEL_CUR(m_mapUnits);

@@ -241,14 +241,14 @@ const char* GBKToUTF8(const char* pGBKStr);
 #define M_MAP_EACH (it->second)
 #define M_MAP_IT it
 
-// 不得继续引用M_MAP_EACH、M_MAP_IT，必须立即continue
+// 不得继续引用M_MAP_EACH、M_MAP_IT，必须立即完成本次循环continue/break/return
 #define M_MAP_DEL_CUR(mapVar) (mapVar).erase(it--)
 
 #define M_VEC_FOREACH(vecVar) for (auto it = (vecVar).begin(); it != (vecVar).end(); ++it)
 #define M_VEC_EACH (*it)
 #define M_VEC_IT it
 
-// 不得继续引用M_VEC_EACH、M_VEC_IT，必须立即continue
+// 不得继续引用M_VEC_EACH、M_VEC_IT，必须立即完成本次循环continue/break/return
 #define M_VEC_DEL_CUR(vecVar) (vecVar).erase(it--)
 
 #define M_SINGLETON(name) \

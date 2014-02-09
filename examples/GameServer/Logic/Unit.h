@@ -241,7 +241,7 @@ public:
     M_SYNTHESIZE(CWorld*, m_pWorld, World);
     
     CUnit* getUnit(int id);
-    void addSkillCD(CSkill* pSkill);
+    void skillCD(CSkill* pSkill);
     void updateSkillCD(int id);
     
     M_SYNTHESIZE_STR(Name);
@@ -613,7 +613,8 @@ public:
     void updateSkillCD(int id);
     
 protected:
-    void delSkillCD(CUnit* pUnit);
+    void cleanSkillsCD(CUnit* pUnit);
+    void skillReady(CSkill* pSkill);
     
 public:
     virtual void onTick(float dt);

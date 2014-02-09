@@ -54,9 +54,9 @@ public:
     virtual void onUnitDestroyProjectile(CProjectile* pProjectile);
     
 public:
-    // 来自CUnit内部调用
-    void onAddToUnit(CUnit* pOwner);
-    void onDelFromUnit();
+    // 来自CUnit内部调用，bNotify为false时，不需要通知onUnitAddSkill，通常这种情况在Buff被覆盖的时候发生
+    void onAddToUnit(CUnit* pOwner, bool bNotify = true);
+    void onDelFromUnit(bool  bNotify = true);
     
     M_SYNTHESIZE(uint32_t, m_dwTriggerFlags, TriggerFlags);
     
@@ -166,6 +166,15 @@ public:
 protected:
     CExtraCoeff m_aoExAttackValue[CAttackValue::CONST_MAX_ATTACK_TYPE];
     CExtraCoeff m_oExAttackSpeed;
+    
+protected:
+    struct TEST_ATTACK_INFO
+    {
+        int iTarget;
+        CAttackData* pAttackData;
+    };
+    virtual void onTestAttackEffect(CMultiRefObject* pObj, void* pData);
+    
 };
 
 class CAttackBuffMakerPas : public CPassiveSkill

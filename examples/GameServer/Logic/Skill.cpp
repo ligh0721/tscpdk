@@ -8,6 +8,7 @@
 #include "CommInc.h"
 #include "Unit.h"
 #include "Skill.h"
+#include "Application.h"
 
 
 // CSkill
@@ -44,8 +45,6 @@ void CSkill::resetCD()
 void CSkill::coolDown()
 {
     setCoolingDownElapsed(0.0f);
-    CUnit* o = getOwner();
-    o->addSkillCD(this);
 }
 
 void CSkill::onUnitAddSkill()
@@ -102,15 +101,22 @@ void CSkill::onUnitDestroyProjectile(CProjectile* pProjectile)
 {
 }
 
-void CSkill::onAddToUnit(CUnit* pOwner)
+void CSkill::onAddToUnit(CUnit* pOwner, bool bNotify)
 {
     setOwner(pOwner);
-    onUnitAddSkill();
+    if (bNotify)
+    {
+        onUnitAddSkill();
+    }
 }
 
-void CSkill::onDelFromUnit()
+void CSkill::onDelFromUnit(bool bNotify)
 {
-    onUnitDelSkill();
+    if (bNotify)
+    {
+        onUnitDelSkill();
+    }
+    
     setOwner(NULL);
 }
 
@@ -147,7 +153,7 @@ CBuffSkill::CBuffSkill(const char* pRootId, const char* pName, float fDuration, 
 : CPassiveSkill(pRootId, pName, 0.0f)
 , m_fDuration(fDuration)
 , m_fElapsed(0.0f)
-, m_bStackable(false)
+, m_bStackable(bStackable)
 , m_iSrcUnit(0)
 {
     setDbgClassName("CBuffSkill");
@@ -274,15 +280,20 @@ void CAttackAct::onUnitCastSkill()
     }
     
     ad = o->attackAdv(ad, t);
-    printf("%s的攻击..\n", o->getName());
-    // 这里模拟立即命中
     
+    LOG("%s的攻击..", o->getName());
+    
+    // 这里模拟命中
     if (ad == NULL)
     {
         return;
     }
     
-    t->damagedAdv(ad, o);
+    ad->retain();
+    TEST_ATTACK_INFO* pAi = new TEST_ATTACK_INFO;
+    pAi->iTarget = t->getId();
+    pAi->pAttackData = ad;
+    o->runAction(new CCallFunc(this, (FUNC_CALLFUNC_ND)&CAttackAct::onTestAttackEffect, pAi));
 }
 
 bool CAttackAct::checkCondition()
@@ -381,6 +392,24 @@ void CAttackAct::updateAttackSpeed()
     o->updateSkillCD(getId());
 }
 
+void CAttackAct::onTestAttackEffect(CMultiRefObject* pObj, void* pData)
+{
+    TEST_ATTACK_INFO* pAi = (TEST_ATTACK_INFO*)pData;
+    
+    CUnit* o = getOwner();
+    CUnit* t = o->getUnit(pAi->iTarget);
+    CAttackData* ad = pAi->pAttackData;
+    
+    if (t != NULL && t->isDead() == false)
+    {
+        t->damagedAdv(ad, o);
+    }
+    
+    ad->release();
+    
+    delete pAi;
+}
+
 // CAttackBuffMakerPas
 CAttackBuffMakerPas::CAttackBuffMakerPas(const char* pRootId, const char* pName, float fProbability, int iTemplateBuff, const CExtraCoeff& roExAttackValue)
 : CPassiveSkill(pRootId, pName)
@@ -439,8 +468,11 @@ void CSpeedBuff::onUnitAddSkill()
     {
         return;
     }
+    float fTestOld = pAtkAct->getRealAttackInterval();
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() + m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() + m_oExAttackSpeedDelta.getAddend()));
+    
+    LOG("%s攻击速度变慢(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
 }
 
 void CSpeedBuff::onUnitDelSkill()
@@ -455,6 +487,9 @@ void CSpeedBuff::onUnitDelSkill()
     {
         return;
     }
+    float fTestOld = pAtkAct->getRealAttackInterval();
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() - m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() - m_oExAttackSpeedDelta.getAddend()));
+    
+    LOG("%s攻击速度恢复(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
 }

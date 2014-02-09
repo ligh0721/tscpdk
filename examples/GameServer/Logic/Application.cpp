@@ -17,8 +17,9 @@ USING_NS_TSCPDK;
 CLogicApplication * CLogicApplication::sm_pSharedApplication = NULL;
 
 CLogicApplication::CLogicApplication()
-: m_lLastTime(0)
-, m_lAnimationInterval(0)
+: m_lAnimationInterval(0)
+, m_lLastTime(0)
+, m_fElapsedTime(0.0f)
 {
 	assert(!sm_pSharedApplication);
 	sm_pSharedApplication = this;
@@ -32,6 +33,7 @@ CLogicApplication::~CLogicApplication()
 
 int CLogicApplication::run()
 {
+    m_fElapsedTime = 0.0f;
 	// Initialize instance and cocos2d.
 	if (!applicationDidFinishLaunching())
 	{
@@ -44,7 +46,9 @@ int CLogicApplication::run()
         long lCurTime = getCurMSec();
         if (m_lLastTime)
         {
-            applicationTick((lCurTime - m_lLastTime) * 0.001);
+            float dt = (lCurTime - m_lLastTime) * 0.001;
+            m_fElapsedTime += dt;
+            applicationTick(dt);
             CAutoReleasePool::sharedAutoReleasePool()->releaseObjects();
         }
         m_lLastTime = lCurTime;
@@ -86,3 +90,16 @@ long CLogicApplication::getCurMSec()
 	gettimeofday(&stCurrentTime, NULL);
 	return stCurrentTime.tv_sec * 1000 + stCurrentTime.tv_usec * 0.001; // millseconds
 }
+
+
+// CApplicationLog
+void CApplicationLog::Log(const char* pFormat, ...)
+{
+    fprintf(stdout, "[%03.2f] ", CLogicApplication::sharedApplication()->getElapsedTime());
+    va_list argv;
+    va_start(argv, pFormat);
+    vfprintf(stdout, pFormat, argv);
+    va_end(argv);
+    fprintf(stdout, "\n");
+}
+

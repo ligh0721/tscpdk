@@ -52,15 +52,15 @@ CMyWorld::CMyWorld()
 , m_iUnitId2(0)
 , m_bExit(false)
 {
-    CAttackAct* atk = new CAttackAct("attack",
+    CAttackAct* atk = new CAttackAct("CAttackAct",
                                      "普通攻击",
-                                     1.00,
+                                     0.5,
                                      CAttackValue(1,
                                                   CAttackValue::kPhysical,
-                                                  10.0),
+                                                  5.0),
                                      0.5);
     
-    CUnit* u = new CUnit("aaa");
+    CUnit* u = new CUnit("CUnit");
     m_iUnitId = u->getId();
     u->setName("Slime");
     u->setMaxHp(75.0001);
@@ -68,21 +68,22 @@ CMyWorld::CMyWorld()
     u->setAI<CMyAI>();
     this->addUnit(u);
     
-    u = new CUnit("bbb");
+    // hero init
+    u = new CUnit("CUnit");
     m_iUnitId2 = u->getId();
     u->setName("Sw0rd");
     u->setMaxHp(100.0001);
     atk = dynamic_cast<CAttackAct*>(atk->copy());
-    atk->setBaseAttackInterval(1.75);
+    atk->setBaseAttackInterval(2.0);
     u->addActiveSkill(atk);
     this->addUnit(u);
     
-    CSkill* pSkill = new CSpeedBuff("speed", "slow", 2.0f, false, CExtraCoeff(0.0f, 0.0f), CExtraCoeff(-0.5f, 0.0f));
+    CSkill* pSkill = new CSpeedBuff("CSpeedBuff", "减速", 10.0f, true, CExtraCoeff(0.0f, 0.0f), CExtraCoeff(-0.05f, 0.0f));
     int id = addTemplateSkill(pSkill);
     
-    pSkill = new CAttackBuffMakerPas("attackbuffermaker", "attackbuffermaker", 1.0f, id, CExtraCoeff());
+    pSkill = new CAttackBuffMakerPas("CAttackBuffMakerPas", "霜冻攻击", 1.0f, id, CExtraCoeff());
     id = addTemplateSkill(pSkill);
-    u->addPassiveSkill(dynamic_cast<CPassiveSkill*>(pSkill));
+    u->addPassiveSkill(dynamic_cast<CPassiveSkill*>(pSkill->copy()));
     //u->setRevivable(true);
     
     //u->setAI<CUnitEventAdapter>();
@@ -102,19 +103,18 @@ CMyWorld::CMyWorld()
 
 void CMyWorld::onTick(float dt)
 {
-    //printf("%f, <%f, %f>\n", fDt, m_pUnit->getPosition().x, m_pUnit->getPosition().y);
     if (getUnits().size() <= 1 && this->getSkillsCD().empty())
     {
         CDbgMultiRefObjectManager::sharedDbgMultiRefObjectManager()->printDbgInfo();
         
         if (getUnits().size() == 1)
         {
-            printf("%s胜出\n\n", getUnits().begin()->second->getName());
+            LOG("%s胜出\n", getUnits().begin()->second->getName());
             this->delUnit(getUnits().begin()->first);
         }
         
         CDbgMultiRefObjectManager::sharedDbgMultiRefObjectManager()->printDbgInfo();
-        exit(1);
+        exit(EXIT_SUCCESS);
         
         return;
     }
