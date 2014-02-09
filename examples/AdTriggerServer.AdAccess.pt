@@ -1,0 +1,3 @@
+stAdAccessInfo = wVersion + wAdPos + dwUin + dwRelayUin + ddwRootTid + dwAdUin + ddwAdTid + dwTime + wInteractType + cReserved[6]
+stAdAccess = cFlags + dwSrcAddr + dwUin + stAdAccessInfo + cReserved[7]
+

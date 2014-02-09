@@ -1,0 +1,4 @@
+stHdr = wLen + dwSeq + wCmd + cReserved[16] + wCount
+stBody = wNameLen + cName[wNameLen] + wPswLen + cPsw[wPswLen]
+stPack = cStx0x02 + stHdr + stBody[stHdr.wCount] + cEtx0x03
+

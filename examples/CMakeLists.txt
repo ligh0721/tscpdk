@@ -1,0 +1,56 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+
+PROJECT(examples)
+
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Release)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
+IF(tscpdk_BINARY_DIR)
+    SET(EXECUTABLE_OUTPUT_PATH ${tscpdk_BINARY_DIR})
+ENDIF(tscpdk_BINARY_DIR)
+
+ADD_DEFINITIONS(-Wall)
+
+INCLUDE_DIRECTORIES(
+    ${tscpdk_SOURCE_DIR}/src
+    ${tscpdk_SOURCE_DIR}/src/tscpdk
+)
+LINK_DIRECTORIES(${EXECUTABLE_OUTPUT_PATH})
+
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/GameServer)
+
+ADD_EXECUTABLE(WorkerTest WorkerTest.cpp)
+ADD_DEPENDENCIES(WorkerTest tscpdk)
+TARGET_LINK_LIBRARIES(WorkerTest tscpdk)
+
+ADD_EXECUTABLE(ShmTest ShmTest.cpp)
+ADD_DEPENDENCIES(ShmTest tscpdk)
+TARGET_LINK_LIBRARIES(ShmTest tscpdk)
+
+ADD_EXECUTABLE(LuaTest LuaTest.cpp)
+#ADD_DEPENDENCIES(LuaTest tscpdk)
+TARGET_LINK_LIBRARIES(LuaTest tscpdk)
+
+ADD_EXECUTABLE(ProtoTest ProtoTest.cpp)
+ADD_DEPENDENCIES(ProtoTest tscpdk)
+TARGET_LINK_LIBRARIES(ProtoTest tscpdk)
+
+ADD_EXECUTABLE(WwwwTest WwwwTest.cpp)
+ADD_DEPENDENCIES(WwwwTest tscpdk)
+TARGET_LINK_LIBRARIES(WwwwTest tscpdk)
+
+IF(WIN32)
+    IF(UNIX)
+        # CYGWIN
+    ELSE(UNIX)
+        # MSVC
+    ENDIF(UNIX)
+ELSEIF(UNIX)
+    # GNU
+    TARGET_LINK_LIBRARIES(WorkerTest pthread rt dl)
+    TARGET_LINK_LIBRARIES(ShmTest pthread rt dl)
+    TARGET_LINK_LIBRARIES(LuaTest pthread rt dl)
+    TARGET_LINK_LIBRARIES(ProtoTest pthread rt dl)
+    TARGET_LINK_LIBRARIES(WwwwTest pthread rt dl)
+ENDIF(WIN32)

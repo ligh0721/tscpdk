@@ -1,0 +1,6 @@
+stHdr = wLength + wVersion + dwSequence + cRecvered[8]
+stField = wType + wLen + cBuf[wLen]
+stBody = wCount + stField[wCount]
+
+stPack = cStx0x0A + stHdr + stBody + cEtx0x03
+
