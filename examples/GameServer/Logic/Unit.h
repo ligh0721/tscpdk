@@ -99,11 +99,10 @@ extern float g_afAttackArmorTable[CArmorValue::CONST_MAX_ARMOR_TYPE][CAttackValu
 class CAttackBuff
 {
 public:
-    CAttackBuff(int iTemplateBuff, int iBuffLevel, float fProbability);
+    CAttackBuff(int iTemplateBuff, int iBuffLevel);
     
     M_SYNTHESIZE(int, m_iTemplateBuff, TemplateBuff);
     M_SYNTHESIZE(int, m_iBuffLevel, BuffLevel);
-    M_SYNTHESIZE(float, m_fProbability, Probability);
 };
 
 class CAttackData : public CMultiRefObject
@@ -235,7 +234,7 @@ protected:
     const string CONST_ROOT_ID;
 
 public:
-    CUnit(const char* pRootId); 
+    CUnit(const char* pRootId);
     virtual ~CUnit();
     
     M_SYNTHESIZE(CWorld*, m_pWorld, World);
@@ -439,7 +438,11 @@ protected:
     //void delBuff(CBuffSkill* pBuff, bool bAfterTriggerLoop = true);
     //void coverBuff(CBuffSkill* pBuff);
     
+protected:
+    int m_iSuspendRef;
+    
 public:
+    virtual bool isSuspended() const;
     virtual void suspend();
     virtual void resume();
     

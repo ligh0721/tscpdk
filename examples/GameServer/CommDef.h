@@ -15,7 +15,7 @@ public: inline virtual varType get##funName(void) const { return varName; }
 
 #define M_SYNTHESIZE_READONLY_PASS_BY_REF(varType, varName, funName)\
 protected: varType varName;\
-public: inline virtual const varType& get##funName(void) const { return varName; }
+public: inline virtual varType& get##funName(void) { return varName; }
 
 #define M_SYNTHESIZE(varType, varName, funName)\
 protected: varType varName;\
@@ -34,7 +34,7 @@ public: inline virtual void set##funName(const char* p##funName){ m_s##funName =
 
 #define M_SYNTHESIZE_PASS_BY_REF(varType, varName, funName)\
 protected: varType varName;\
-public: inline virtual const varType& get##funName(void) const { return varName; }\
+public: inline virtual varType& get##funName(void) { return varName; }\
 public: inline virtual void set##funName(const varType& var){ varName = var; }
 
 
@@ -237,19 +237,24 @@ const char* GBKToUTF8(const char* pGBKStr);
 #define M_BIT_32U(index) ((uint32_t)(1 << index))
 #define M_IS_BIT_SET_32U(u32, index) ((uint32_t)(u32) & (uint32_t)(1 << (uint32_t)(index)))
 
-#define M_MAP_FOREACH(mapVar) for (auto it = (mapVar).begin(); it != (mapVar).end(); ++it)
+#define M_MAP_FOREACH(mapVar) for (auto it = (mapVar).begin(); it != (mapVar).end(); )
 #define M_MAP_EACH (it->second)
 #define M_MAP_IT it
 
 // 不得继续引用M_MAP_EACH、M_MAP_IT，必须立即完成本次循环continue/break/return
-#define M_MAP_DEL_CUR(mapVar) (mapVar).erase(it--)
+#define M_MAP_DEL_CUR_NEXT(mapVar) (mapVar).erase(it++)
+// 需立即continue
+#define M_MAP_NEXT ++it
 
-#define M_VEC_FOREACH(vecVar) for (auto it = (vecVar).begin(); it != (vecVar).end(); ++it)
+#define M_VEC_FOREACH(vecVar) for (auto it = (vecVar).begin(); it != (vecVar).end(); )
 #define M_VEC_EACH (*it)
 #define M_VEC_IT it
 
 // 不得继续引用M_VEC_EACH、M_VEC_IT，必须立即完成本次循环continue/break/return
-#define M_VEC_DEL_CUR(vecVar) (vecVar).erase(it--)
+#define M_VEC_DEL_CUR_NEXT(vecVar) it = (vecVar).erase(it)
+
+// 需立即continue
+#define M_VEC_NEXT ++it
 
 #define M_SINGLETON(name) \
     inline static C##name* shared##name() \

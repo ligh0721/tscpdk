@@ -18,6 +18,8 @@ CSkill::CSkill(const char* pRootId, const char* pName, float fCoolDown)
 , m_pOwner(NULL)
 , m_fCoolDown(fCoolDown)
 , m_fCoolingDownElapsed(FLT_MAX)
+, m_fInterval(0.0f)
+, m_fIntervalElapsed(0.0f)
 , m_dwTriggerFlags(0)
 {
     setDbgClassName("CSkill");
@@ -51,6 +53,18 @@ void CSkill::onUnitAddSkill()
 {
 }
 
+void CSkill::setInterval(float fInterval)
+{
+    if (fInterval <= FLT_EPSILON)
+    {
+        m_fInterval = 0.0f;
+        return;
+    }
+    
+    setTriggerFlags(CUnit::kTickTrigger);
+    m_fInterval = fInterval;
+}
+
 void CSkill::onUnitDelSkill()
 {
 }
@@ -72,6 +86,10 @@ void CSkill::onUnitHpChange(float fChanged)
 }
 
 void CSkill::onUnitTick(float dt)
+{
+}
+
+void CSkill::onUnitInterval()
 {
 }
 
@@ -118,6 +136,16 @@ void CSkill::onDelFromUnit(bool bNotify)
     }
     
     setOwner(NULL);
+}
+
+void CSkill::setTriggerFlags(uint32_t dwTriggerFlags)
+{
+    m_dwTriggerFlags |= dwTriggerFlags;
+}
+
+void CSkill::unsetTriggerFlags(uint32_t dwTriggerFlags)
+{
+    m_dwTriggerFlags &= ~dwTriggerFlags;
 }
 
 //
@@ -212,16 +240,15 @@ bool CActiveSkill::checkCondition()
     return true;
 }
 
-
-
 // CAuraPas
-CAuraPas::CAuraPas(const char* pRootId, const char* pName, float fCoolDown, int iTemplateBuff, float fRange, uint32_t dwTargetFlags)
-: CPassiveSkill(pRootId, pName, fCoolDown)
+CAuraPas::CAuraPas(const char* pRootId, const char* pName, float fInterval, int iTemplateBuff, float fRange, uint32_t dwTargetFlags)
+: CPassiveSkill(pRootId, pName)
 , m_iTemplateBuff(iTemplateBuff)
 , m_fRange(fRange)
 , m_dwTargetFlags(dwTargetFlags)
 {
     setDbgClassName("CAuraPas");
+    setInterval(fInterval);
 }
 
 CAuraPas::~CAuraPas()
@@ -230,7 +257,41 @@ CAuraPas::~CAuraPas()
 
 CMultiRefObject* CAuraPas::copy() const
 {
-    return new CAuraPas(CONST_ROOT_ID.c_str(), m_sName.c_str(), m_fCoolDown, m_iTemplateBuff, m_fRange, m_dwTargetFlags);
+    return new CAuraPas(getRootId(), getName(), m_fInterval, m_iTemplateBuff, m_fRange, m_dwTargetFlags);
+}
+
+void CAuraPas::onUnitInterval()
+{
+    CUnit* o = getOwner();
+    CWorld* w = o->getWorld();
+    CBuffSkill* pBuff = NULL;
+    
+    CWorld::MAP_UNITS& mapUnits = w->getUnits();
+    M_MAP_FOREACH(mapUnits)
+    {
+        CUnit* u = M_MAP_EACH;
+        M_MAP_NEXT;
+        
+        if (!(
+            ((u == o) && (m_dwTargetFlags & CUnitForce::kSelf)) ||
+            ((u != o) && (u->isAllyOf(o) && (m_dwTargetFlags & CUnitForce::kAlly))) ||
+            (u->isEnemyOf(o) && (m_dwTargetFlags & CUnitForce::kEnemy))
+            ))
+        {
+            continue;
+        }
+
+        if (o->getPosition().getDistance(u->getPosition()) > m_fRange)
+        {
+            continue;
+        }
+        
+        pBuff = (pBuff == NULL) ?
+            (dynamic_cast<CBuffSkill*>(w->copySkill(m_iTemplateBuff))) :
+            (dynamic_cast<CBuffSkill*>(pBuff->copy()));
+        
+        u->addBuffSkill(pBuff);
+    }
 }
 
 // CAttackAct
@@ -250,7 +311,7 @@ CAttackAct::CAttackAct(const char* pRootId, const char* pName, float fCoolDown, 
 
 CMultiRefObject* CAttackAct::copy() const
 {
-    return new CAttackAct(CONST_ROOT_ID.c_str(), m_sName.c_str(), m_fCoolDown, m_oAttackValue, m_fAttackValueRandomRange);
+    return new CAttackAct(getRootId(), getName(), m_fCoolDown, m_oAttackValue, m_fAttackValueRandomRange);
 }
 
 void CAttackAct::onUnitAddSkill()
@@ -423,11 +484,16 @@ CAttackBuffMakerPas::CAttackBuffMakerPas(const char* pRootId, const char* pName,
 
 CMultiRefObject* CAttackBuffMakerPas::copy() const
 {
-    return new CAttackBuffMakerPas(CONST_ROOT_ID.c_str(), m_sName.c_str(), m_fProbability, m_iTemplateBuff, m_oExAttackValue);
+    return new CAttackBuffMakerPas(getRootId(), getName(), m_fProbability, m_iTemplateBuff, m_oExAttackValue);
 }
 
 CAttackData* CAttackBuffMakerPas::onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget)
 {
+    if (M_RAND_HIT(m_fProbability) == false)
+    {
+        return pAttack;
+    }
+    
     for (int i = 0; i < CAttackValue::CONST_MAX_ATTACK_TYPE; ++i)
     {
         const CAttackValue& rAtkVal = pAttack->getAttackValue();
@@ -437,7 +503,10 @@ CAttackData* CAttackBuffMakerPas::onUnitAttackTarget(CAttackData* pAttack, CUnit
         }
     }
     
-    pAttack->addAttackBuff(CAttackBuff(m_iTemplateBuff, getLevel(), m_fProbability));
+    if (m_iTemplateBuff != 0)
+    {
+        pAttack->addAttackBuff(CAttackBuff(m_iTemplateBuff, getLevel()));
+    }
     
     return pAttack;
 }
@@ -453,7 +522,7 @@ CSpeedBuff::CSpeedBuff(const char* pRootId, const char* pName, float fDuration, 
 
 CMultiRefObject* CSpeedBuff::copy() const
 {
-    return new CSpeedBuff(CONST_ROOT_ID.c_str(), m_sName.c_str(), m_fDuration, m_bStackable, m_oExMoveSpeedDelta, m_oExAttackSpeedDelta);
+    return new CSpeedBuff(getRootId(), getName(), m_fDuration, m_bStackable, m_oExMoveSpeedDelta, m_oExAttackSpeedDelta);
 }
 
 void CSpeedBuff::onUnitAddSkill()
@@ -493,3 +562,52 @@ void CSpeedBuff::onUnitDelSkill()
     
     LOG("%s攻击速度恢复(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
 }
+
+// CHpChangeBuff
+CHpChangeBuff::CHpChangeBuff(const char* pRootId, const char* pName, float fDuration, bool bStackable, float fInterval, float fHpChange, bool bPercentile, float fMinHp)
+: CBuffSkill(pRootId, pName, fDuration, bStackable)
+, m_fHpChange(fHpChange)
+, m_bPercentile(bPercentile)
+, m_fMinHp(fMinHp)
+{
+    setDbgClassName("CHpChangeBuff");
+    setInterval(fInterval);
+}
+
+CMultiRefObject* CHpChangeBuff::copy() const
+{
+    return new CHpChangeBuff(getRootId(), getName(), m_fDuration, m_bStackable, m_fInterval, m_fHpChange, m_bPercentile, m_fMinHp);
+}
+
+void CHpChangeBuff::onUnitAddSkill()
+{
+    CUnit* o = getOwner();
+    LOG("%s血流不止(%.1f%s/s)\n", o->getName(), getHpChange(), isPercentile() ? "%%" : "");
+}
+
+void CHpChangeBuff::onUnitDelSkill()
+{
+    CUnit* o = getOwner();
+    LOG("%s止住了流血\n", o->getName());
+}
+
+void CHpChangeBuff::onUnitInterval()
+{
+    CUnit* o = getOwner();
+    float fNewHp = o->getHp();
+    if (isPercentile())
+    {
+        fNewHp += o->getMaxHp() * m_fHpChange / 100;
+    }
+    else
+    {
+        fNewHp += m_fHpChange;
+    }
+
+    if (fNewHp < m_fMinHp)
+    {
+        fNewHp = m_fMinHp;
+    }
+    o->setHp(fNewHp);
+}
+

@@ -28,7 +28,6 @@ public:
 protected:
     int m_iUnitId;
     int m_iUnitId2;
-    bool m_bExit;
 };
 
 class CMyApp : public CLogicApplication

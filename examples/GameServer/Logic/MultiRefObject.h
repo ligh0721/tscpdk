@@ -147,6 +147,7 @@ inline void CMultiRefMap<MULTIREF_ID_TYPE_PTR>::delAllObjects()
     {
         MULTIREF_ID_TYPE_PTR pObj = M_MAP_EACH;
         pObj->release();
+        M_MAP_NEXT;
     }
     this->clear();
 }
@@ -168,10 +169,11 @@ inline void CMultiRefVec<MULTIREF_ID_TYPE_PTR>::addObject(MULTIREF_ID_TYPE_PTR p
 template <typename MULTIREF_ID_TYPE_PTR>
 inline void CMultiRefVec<MULTIREF_ID_TYPE_PTR>::delAllObjects()
 {
-    M_MAP_FOREACH(*this)
+    M_VEC_FOREACH(*this)
     {
         MULTIREF_ID_TYPE_PTR pObj = M_VEC_EACH;
         pObj->release();
+        M_MAP_NEXT;
     }
     this->clear();
 }

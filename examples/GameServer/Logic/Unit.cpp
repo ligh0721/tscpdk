@@ -188,10 +188,9 @@ float g_afAttackArmorTable[CArmorValue::CONST_MAX_ARMOR_TYPE][CAttackValue::CONS
 };
 
 // CAttackBuff
-CAttackBuff::CAttackBuff(int iTemplateBuff, int iBuffLevel, float fProbability)
+CAttackBuff::CAttackBuff(int iTemplateBuff, int iBuffLevel)
 : m_iTemplateBuff(iTemplateBuff)
 , m_iBuffLevel(iBuffLevel)
-, m_fProbability(fProbability)
 {
 }
 
@@ -244,7 +243,7 @@ void CUnitForce::setForceByIndex(int iForceIndex)
 
 bool CUnitForce::isAllyOf(const CUnitForce* pForce) const
 {
-    return ((m_dwAllyMaskFlag & pForce->m_dwForceFlag) != 0);
+    return (m_dwForceFlag == pForce->m_dwForceFlag) || (m_dwAllyMaskFlag & pForce->m_dwForceFlag);
 }
 
 bool CUnitForce::isEnemyOf(const CUnitForce* pForce) const
@@ -268,10 +267,12 @@ CAction* CActionManager::getActionByTag(int iTag)
 {
     M_VEC_FOREACH(m_vecActions)
     {
-        if (M_VEC_EACH->getTag() == iTag)
+        CAction* pAction = M_VEC_EACH;
+        if (pAction->getTag() == iTag)
         {
-            return M_VEC_EACH;
+            return pAction;
         }
+        M_VEC_NEXT;
     }
     
     return NULL;
@@ -285,11 +286,14 @@ void CActionManager::onTick(float dt)
         pAct->step(dt);
         if (pAct->isDone())
         {
-            M_VEC_DEL_CUR(m_vecActions);
-            
             pAct->stop();
             pAct->release();
-            continue;
+            
+            M_VEC_DEL_CUR_NEXT(m_vecActions);
+        }
+        else
+        {
+            M_VEC_NEXT;
         }
     }
 }
@@ -332,6 +336,7 @@ CUnit::CUnit(const char* pRootId)
 , m_fMaxHp(1.001f)
 , m_pAI(NULL)
 , m_iTriggerRefCount(0)
+, m_iSuspendRef(0)
 , m_iAttackSkillId(0)
 , m_eArmorType(CArmorValue::kNormal)
 , m_fBaseArmorValue(0.0f)
@@ -614,14 +619,12 @@ void CUnit::damagedMid(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerM
     M_VEC_FOREACH(pAttack->getAttackBuffs())
     {
         const CAttackBuff* pAb = &M_VEC_EACH;
-        if (M_RAND_HIT(pAb->getProbability()))
-        {
-            // TODO: copy BUFF from BuffManager
-            CBuffSkill* pBuff = dynamic_cast<CBuffSkill*>(getWorld()->copySkill(pAb->getTemplateBuff()));
-            pBuff->setSrcUnit(pSource->getId());
-            pBuff->setLevel(pAb->getBuffLevel());
-            addBuffSkill(pBuff);
-        }
+        // TODO: copy BUFF from TemplateSkills
+        CBuffSkill* pBuff = dynamic_cast<CBuffSkill*>(getWorld()->copySkill(pAb->getTemplateBuff()));
+        pBuff->setSrcUnit(pSource->getId());
+        pBuff->setLevel(pAb->getBuffLevel());
+        addBuffSkill(pBuff);
+        M_MAP_NEXT;
     }
 
     //transformDamageByAttribute(pAttack);
@@ -738,14 +741,18 @@ void CUnit::addBuffSkill(CBuffSkill* pSkill)
             {
                 pBuff->onDelFromUnit(false);
                 delSkillFromTriggers(pBuff);
-
-                M_MAP_DEL_CUR(m_mapBuffSkills);
                 pBuff->release();
                 
                 m_mapBuffSkills.addObject(pSkill);
                 pSkill->onAddToUnit(this, false);
                 addSkillToTriggers(pSkill);
+                
+                M_MAP_DEL_CUR_NEXT(m_mapBuffSkills);
                 return;
+            }
+            else
+            {
+                M_MAP_NEXT;
             }
         }
     }
@@ -786,10 +793,13 @@ void CUnit::updateBuffSkillElapsed(float dt)
         {
             pBuff->onDelFromUnit();
             delSkillFromTriggers(pBuff);
-
-            m_mapBuffSkills.erase(M_MAP_IT--);
             pBuff->release();
-            continue;
+            
+            M_MAP_DEL_CUR_NEXT(m_mapBuffSkills);
+        }
+        else
+        {
+            M_MAP_NEXT;
         }
     }
 }
@@ -946,12 +956,14 @@ void CUnit::updateTriggerSkillsWhenTriggerFree()
     {
         CSkill* pSkill = M_MAP_EACH;
         addSkillToTriggers(pSkill);
+        M_MAP_NEXT;
     }
     
     M_MAP_FOREACH(m_mapTriggerSkillsToDel)
     {
         CSkill* pSkill = M_MAP_EACH;
         delSkillFromTriggers(pSkill);
+        M_MAP_NEXT;
     }
     
     m_mapTriggerSkillsToAdd.delAllObjects();
@@ -985,6 +997,7 @@ void CUnit::triggerOnRevive()
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitRevive();
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -996,6 +1009,7 @@ void CUnit::triggerOnDie()
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDie();
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1007,6 +1021,7 @@ void CUnit::triggerOnHpChange(float fChanged)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitHpChange(fChanged);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1018,6 +1033,17 @@ void CUnit::triggerOnTick(float dt)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitTick(dt);
+        if (pSkill->getInterval() > FLT_EPSILON)
+        {
+            pSkill->setIntervalElapsed(pSkill->getIntervalElapsed() + dt);
+
+            while (pSkill->getIntervalElapsed() >= pSkill->getInterval())
+            {
+                pSkill->onUnitInterval();
+                pSkill->setIntervalElapsed(pSkill->getIntervalElapsed() - pSkill->getInterval());
+            }
+        }
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1033,6 +1059,7 @@ CAttackData* CUnit::triggerOnAttackTarget(CAttackData* pAttack, CUnit* pTarget)
         {
             break;
         }
+        M_MAP_NEXT;
     }
     endTrigger();
     return pAttack;
@@ -1049,6 +1076,7 @@ CAttackData* CUnit::triggerOnAttacked(CAttackData* pAttack, CUnit* pSource)
         {
             break;
         }
+        M_MAP_NEXT;
     }
     endTrigger();
     return pAttack;
@@ -1061,6 +1089,7 @@ void CUnit::triggerOnDamagedSurface(CAttackData* pAttack, CUnit* pSource)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDamaged(pAttack, pSource);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1072,6 +1101,7 @@ void CUnit::triggerOnDamagedInner(CAttackData* pAttack, CUnit* pSource)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDamaged(pAttack, pSource);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1083,6 +1113,7 @@ void CUnit::triggerOnDamagedDone(float fDamage, CUnit* pSource)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDamagedDone(fDamage, pSource);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1094,6 +1125,7 @@ void CUnit::triggerOnDamageTargetDone(float fDamage, CUnit* pTarget)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDamageTargetDone(fDamage, pTarget);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
@@ -1105,42 +1137,34 @@ void CUnit::triggerOnDestroyProjectile(CProjectile* pProjectile)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->onUnitDestroyProjectile(pProjectile);
+        M_MAP_NEXT;
     }
     endTrigger();
 }
 
-
-
-
-
-
-#if 0
-void CUnit::addSkill(CSkill* pSkill)
+bool CUnit::isSuspended() const
 {
+    return m_iSuspendRef > 0;
 }
 
-void CUnit::delSkill(CSkill* pSkill)
-{
-}
-
-void CUnit::addBuff(CBuffSkill* pBuff, bool bForce)
-{
-}
-
-void CUnit::delBuff(CBuffSkill* pBuff, bool bAfterTriggerLoop)
-{
-}
-
-void CUnit::coverBuff(CBuffSkill* pBuff)
-{
-}
-#endif
 void CUnit::suspend()
 {
+    ++m_iSuspendRef;
+    // TODO: stop actions
 }
 
 void CUnit::resume()
 {
+    if (m_iSuspendRef == 0)
+    {
+        return;
+    }
+    
+    --m_iSuspendRef;
+    if (m_iSuspendRef == 0)
+    {
+        // TODO: resume
+    }
 }
 
 int CUnit::cast(int iActiveSkillId)
@@ -1587,6 +1611,7 @@ void CWorld::cleanSkillsCD(CUnit* pUnit)
         {
             m_mapSkillsCD.delObject(pSkill->getId());
         }
+        M_MAP_NEXT;
     }
     
     M_MAP_FOREACH(pUnit->getPassiveSkills())
@@ -1596,6 +1621,7 @@ void CWorld::cleanSkillsCD(CUnit* pUnit)
         {
             m_mapSkillsCD.delObject(pSkill->getId());
         }
+        M_MAP_NEXT;
     }
     
     M_MAP_FOREACH(pUnit->getBuffSkills())
@@ -1605,6 +1631,7 @@ void CWorld::cleanSkillsCD(CUnit* pUnit)
         {
             m_mapSkillsCD.delObject(pSkill->getId());
         }
+        M_MAP_NEXT;
     }
 }
 
@@ -1629,9 +1656,13 @@ void CWorld::onTick(float dt)
         if (!pSkill->isCoolingDown())
         {
             // 如果技能已经就绪，从中删除
-            M_MAP_DEL_CUR(m_mapSkillsCD);
             skillReady(pSkill);
-            continue;
+            
+            M_MAP_DEL_CUR_NEXT(m_mapSkillsCD);
+        }
+        else
+        {
+            M_MAP_NEXT;
         }
     }
     
@@ -1654,10 +1685,13 @@ void CWorld::onTick(float dt)
                 pUnit->setWorld(NULL);
                 cleanSkillsCD(pUnit);
             }
-            
-            M_MAP_DEL_CUR(m_mapUnits);
             pUnit->release();
-            continue;
+            
+            M_MAP_DEL_CUR_NEXT(m_mapUnits);
+        }
+        else
+        {
+            M_MAP_NEXT;
         }
     }
 }

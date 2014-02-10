@@ -17,9 +17,10 @@ USING_NS_TSCPDK;
 CLogicApplication * CLogicApplication::sm_pSharedApplication = NULL;
 
 CLogicApplication::CLogicApplication()
-: m_lAnimationInterval(0)
-, m_lLastTime(0)
-, m_fElapsedTime(0.0f)
+: m_lAnimationIntervalMS(0)
+, m_lLastTimeMS(0)
+, m_fElapsedTimeMS(0.0f)
+, m_bBursting(false)
 {
 	assert(!sm_pSharedApplication);
 	sm_pSharedApplication = this;
@@ -33,31 +34,38 @@ CLogicApplication::~CLogicApplication()
 
 int CLogicApplication::run()
 {
-    m_fElapsedTime = 0.0f;
+    m_fElapsedTimeMS = 0.0f;
 	// Initialize instance and cocos2d.
 	if (!applicationDidFinishLaunching())
 	{
 		return 0;
 	}
 
-    m_lLastTime = 0;
+    m_lLastTimeMS = 0;
 	for (;;)
     {
-        long lCurTime = getCurMSec();
-        if (m_lLastTime)
+        long lCurTime = m_bBursting ? m_lLastTimeMS + m_lAnimationIntervalMS : getCurMSec();
+        if (m_lLastTimeMS)
         {
-            float dt = (lCurTime - m_lLastTime) * 0.001;
-            m_fElapsedTime += dt;
+            float dt = (lCurTime - m_lLastTimeMS) * 0.001;
+            m_fElapsedTimeMS += dt;
             applicationTick(dt);
             CAutoReleasePool::sharedAutoReleasePool()->releaseObjects();
         }
-        m_lLastTime = lCurTime;
+        m_lLastTimeMS = lCurTime;
 		
-		lCurTime = getCurMSec();
-		if (lCurTime - m_lLastTime < m_lAnimationInterval)
+        if (m_bBursting)
         {
-			SleepForMSec(m_lAnimationInterval - lCurTime + m_lLastTime);
-		}
+            lCurTime = m_lLastTimeMS;
+        }
+        else
+        {
+            lCurTime = getCurMSec();
+            if (lCurTime - m_lLastTimeMS < m_lAnimationIntervalMS)
+            {
+                SleepForMSec(m_lAnimationIntervalMS - (lCurTime - m_lLastTimeMS));
+            }
+        }
 	}
     
 	return -1;
@@ -66,7 +74,7 @@ int CLogicApplication::run()
 void CLogicApplication::setAnimationInterval(double interval)
 {
 	//TODO do something else
-	m_lAnimationInterval = interval * 1000.0f;
+	m_lAnimationIntervalMS = interval * 1000.0f;
 }
 
 CLogicApplication* CLogicApplication::sharedApplication()

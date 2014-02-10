@@ -36,6 +36,10 @@ public:
     virtual void resetCD();
     virtual void coolDown();
     
+    M_SYNTHESIZE_READONLY(float, m_fInterval, Interval);
+    virtual void setInterval(float fInterval);
+    M_SYNTHESIZE(float, m_fIntervalElapsed, IntervalElapsed);
+    
     // 技能持有者事件响应，只覆被注册的触发器相应的事件函数即可
     // @override
     virtual void onUnitAddSkill();
@@ -45,6 +49,7 @@ public:
     virtual void onUnitDie();
     virtual void onUnitHpChange(float fChanged);
     virtual void onUnitTick(float dt);
+    virtual void onUnitInterval();
     virtual CAttackData* onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget);
     virtual CAttackData* onUnitAttacked(CAttackData* pAttack, CUnit* pSource);
     virtual void onUnitDamaged(CAttackData* pAttack, CUnit* pSource);
@@ -58,7 +63,9 @@ public:
     void onAddToUnit(CUnit* pOwner, bool bNotify = true);
     void onDelFromUnit(bool  bNotify = true);
     
-    M_SYNTHESIZE(uint32_t, m_dwTriggerFlags, TriggerFlags);
+    M_SYNTHESIZE_READONLY(uint32_t, m_dwTriggerFlags, TriggerFlags);
+    virtual void setTriggerFlags(uint32_t dwTriggerFlags);
+    virtual void unsetTriggerFlags(uint32_t dwTriggerFlags);
     
 };
 
@@ -113,9 +120,11 @@ public:
 class CAuraPas : public CPassiveSkill
 {
 public:
-    CAuraPas(const char* pRootId, const char* pName, float fCoolDown, int iTemplateBuff, float fRange, uint32_t dwTargetFlags);
+    CAuraPas(const char* pRootId, const char* pName, float fInterval, int iTemplateBuff, float fRange, uint32_t dwTargetFlags);
     virtual ~CAuraPas();
     virtual CMultiRefObject* copy() const;
+    
+    virtual void onUnitInterval();
     
     M_SYNTHESIZE(int, m_iTemplateBuff, TemplateBuff);
     M_SYNTHESIZE(float, m_fRange, Range);
@@ -201,6 +210,22 @@ public:
     
     M_SYNTHESIZE_PASS_BY_REF(CExtraCoeff, m_oExMoveSpeedDelta, ExMoveSpeedDelta);
     M_SYNTHESIZE_PASS_BY_REF(CExtraCoeff, m_oExAttackSpeedDelta, ExAttackSpeedDelta);
+    
+};
+
+class CHpChangeBuff : public CBuffSkill
+{
+public:
+    CHpChangeBuff(const char* pRootId, const char* pName, float fDuration, bool bStackable, float fInterval, float fHpChange, bool bPercentile, float fMinHp);
+    virtual CMultiRefObject* copy() const;
+    
+    virtual void onUnitAddSkill();
+    virtual void onUnitDelSkill();
+    virtual void onUnitInterval();
+    
+    M_SYNTHESIZE(float, m_fHpChange, HpChange);
+    M_SYNTHESIZE_BOOL(Percentile);
+    M_SYNTHESIZE(float, m_fMinHp, MinHp);
     
 };
 

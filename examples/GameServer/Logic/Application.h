@@ -22,8 +22,8 @@ public:
 	virtual ~CLogicApplication();
 
 protected:
-    long m_lAnimationInterval;  // micro second
-    long m_lLastTime;
+    long m_lAnimationIntervalMS;  // micro second
+    long m_lLastTimeMS;
     
 public:
 	void setAnimationInterval(double interval);
@@ -35,7 +35,8 @@ public:
     virtual bool applicationDidFinishLaunching();
     virtual void applicationTick(float fDt);
     
-    M_SYNTHESIZE_READONLY(float, m_fElapsedTime, ElapsedTime);
+    M_SYNTHESIZE_READONLY(float, m_fElapsedTimeMS, ElapsedTime);
+    M_SYNTHESIZE_BOOL(Bursting);
     
 };
 
