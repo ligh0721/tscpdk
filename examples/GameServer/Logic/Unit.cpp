@@ -10,6 +10,7 @@
 #include "Skill.h"
 #include "Action.h"
 #include "Application.h"
+#include "Item.h"
 
 
 
@@ -672,14 +673,14 @@ float CUnit::calcDamage(CAttackValue::ATTACK_TYPE eAttackType, float fAttackValu
     return fRet;
 }
 
-void CUnit::addActiveSkill(CActiveSkill* pSkill)
+void CUnit::addActiveSkill(CActiveSkill* pSkill, bool bNotify)
 {
     m_mapActSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this);  // 消息传递
+    pSkill->onAddToUnit(this, bNotify);  // 消息传递
     addSkillToTriggers(pSkill);
 }
 
-void CUnit::delActiveSkill(int id)
+void CUnit::delActiveSkill(int id, bool bNotify)
 {
     auto it = m_mapActSkills.find(id);
     if (it == m_mapActSkills.end())
@@ -689,7 +690,7 @@ void CUnit::delActiveSkill(int id)
     
     CActiveSkill* pSkill = it->second;
     
-    pSkill->onDelFromUnit();
+    pSkill->onDelFromUnit(bNotify);
     delSkillFromTriggers(pSkill);
     
     m_mapActSkills.erase(it);
@@ -701,14 +702,14 @@ CActiveSkill* CUnit::getActiveSkill(int id)
     return m_mapActSkills.getObject(id);
 }
 
-void CUnit::addPassiveSkill(CPassiveSkill* pSkill)
+void CUnit::addPassiveSkill(CPassiveSkill* pSkill, bool bNotify)
 {
     m_mapPasSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this);  // 消息传递
+    pSkill->onAddToUnit(this, bNotify);  // 消息传递
     addSkillToTriggers(pSkill);
 }
 
-void CUnit::delPassiveSkill(int id)
+void CUnit::delPassiveSkill(int id, bool bNotify)
 {
     auto it = m_mapPasSkills.find(id);
     if (it == m_mapPasSkills.end())
@@ -718,7 +719,7 @@ void CUnit::delPassiveSkill(int id)
     
     CPassiveSkill* pSkill = it->second;
     
-    pSkill->onDelFromUnit();
+    pSkill->onDelFromUnit(bNotify);
     delSkillFromTriggers(pSkill);
     
     m_mapPasSkills.erase(it);
@@ -1167,7 +1168,7 @@ void CUnit::resume()
     }
 }
 
-int CUnit::cast(int iActiveSkillId)
+int CUnit::castSkill(int iActiveSkillId)
 {
     if (iActiveSkillId == 0)
     {
@@ -1190,11 +1191,6 @@ int CUnit::cast(int iActiveSkillId)
     {
         return -1;
     }
-    
-    if (pSkill->isCoolingDown())
-    {
-        skillCD(pSkill);
-    }
         
     return 0;
 }
@@ -1202,6 +1198,108 @@ int CUnit::cast(int iActiveSkillId)
 float CUnit::getRealArmorValue() const
 {
     return m_oExArmorValue.getValue(m_fBaseArmorValue);
+}
+
+void CUnit::setPackageSize(int iSize)
+{
+    m_vecItems.resize(iSize);
+}
+
+bool CUnit::addItem(CItem* pItem)
+{
+    if (pItem->getMaxStackSize() == 0)
+    {
+        // 直接使用
+        assert(pItem->getItemType() == CItem::kConsumable);
+        pItem->onAddToNewSlot(this);
+        assert(pItem->getActiveSkill() != NULL);
+        
+        return pItem->use();
+    }
+    
+    int iFirstEmpty = -1;
+    for (int i = 0; i < (int)m_vecItems.size(); ++i)
+    {
+        CItem* pSlot = m_vecItems[i];
+        if (pSlot == NULL && iFirstEmpty == -1)
+        {
+            // 找到第一个空位
+            iFirstEmpty = i;
+        }
+        
+        if (strcmp(pSlot->getRootId(), pItem->getRootId()) == 0)
+        {
+            // 找到堆叠组
+            if (pSlot->getStackCount() < pSlot->getMaxStackSize())
+            {
+                // 可以继续堆叠
+                pSlot->addStackCount();
+                return true;
+            }
+            else
+            {
+                // 已到达堆叠上限
+                return false;
+            }
+        }
+    }
+    
+    if (iFirstEmpty == -1)
+    {
+        // 没找到空位
+        return false;
+    }
+    
+    m_vecItems.setObject(iFirstEmpty, pItem);
+    pItem->onAddToNewSlot(this);  // 消息传递
+    
+    return true;
+}
+
+void CUnit::delItem(int iIndex)
+{
+    if (iIndex < 0 || iIndex >= (int)m_vecItems.size())
+    {
+        return;
+    }
+    
+    if (m_vecItems[iIndex] == NULL)
+    {
+        return;
+    }
+    
+    m_vecItems[iIndex]->onDelFromSlot();
+    m_vecItems.delObject(iIndex);
+}
+
+CItem* CUnit::getItem(int iIndex)
+{
+    if (iIndex < 0 || iIndex >= (int)m_vecItems.size())
+    {
+        return NULL;
+    }
+    
+    return m_vecItems[iIndex];
+}
+
+int CUnit::useItem(int iIndex)
+{
+    if (iIndex < 0 || iIndex >= (int)m_vecItems.size())
+    {
+        return -1;
+    }
+    
+    if (m_vecItems[iIndex] == NULL)
+    {
+        return -1;
+    }
+    
+    if (m_vecItems[iIndex]->use() == false)
+    {
+        return -1;
+    }
+    
+    return 0;
 }
 
 void CUnit::startDoing(uint32_t dwDoingFlags)
@@ -1600,6 +1698,7 @@ void CWorld::updateSkillCD(int id)
     
     m_mapSkillsCD.erase(it);
     skillReady(pSkill);
+    pSkill->release();
 }
 
 void CWorld::cleanSkillsCD(CUnit* pUnit)
@@ -1637,13 +1736,13 @@ void CWorld::cleanSkillsCD(CUnit* pUnit)
 
 void CWorld::skillReady(CSkill* pSkill)
 {
-    CUnit* pOwner = getUnit(pSkill->getOwner()->getId());
-    if (pOwner != NULL)
+    // 由于技能的所有者可能在等待重生，所以主世界可能不存在该单位，但是单位仍未被释放
+    CUnit* o = getUnit(pSkill->getOwner()->getId());
+    if (o != NULL)
     {
         // 存在于主世界中，则触发事件
-        pOwner->onSkillReady(pSkill);
+        o->onSkillReady(pSkill);
     }
-    pSkill->release();
 }
 
 void CWorld::onTick(float dt)

@@ -185,6 +185,7 @@ class CPassiveSkill;
 class CBuffSkill;
 class CActiveSkill;
 class CWorld;
+class CItem;
 
 class CCommandTarget
 {
@@ -366,12 +367,12 @@ public:
 
     // 下列函数将安全的增删触发器
     
-    void addActiveSkill(CActiveSkill* pSkill);
-    void delActiveSkill(int id);
+    void addActiveSkill(CActiveSkill* pSkill, bool bNotify = true);
+    void delActiveSkill(int id, bool bNotify = true);
     CActiveSkill* getActiveSkill(int id);
     
-    void addPassiveSkill(CPassiveSkill* pSkill);
-    void delPassiveSkill(int id);
+    void addPassiveSkill(CPassiveSkill* pSkill, bool bNotify = true);
+    void delPassiveSkill(int id, bool bNotify = true);
     CPassiveSkill* getPassiveSkill(int id);
     
     void addBuffSkill(CBuffSkill* pSkill);
@@ -449,7 +450,7 @@ public:
     M_SYNTHESIZE(int, m_iAttackSkillId, AttackSkillId);
     
     M_SYNTHESIZE_PASS_BY_REF(CCommandTarget, m_oCastTarget, CastTarget);
-    virtual int cast(int iActiveSkillId);  // 可能是施法失败，施法中，施法追逐中，所以返回类型为int
+    virtual int castSkill(int iActiveSkillId);  // 可能是施法失败，施法中，施法追逐中，所以返回类型为int
     
     M_SYNTHESIZE(CArmorValue::ARMOR_TYPE, m_eArmorType, ArmorType);
     M_SYNTHESIZE(float, m_fBaseArmorValue, BaseArmorValue);
@@ -458,6 +459,15 @@ public:
     
     M_SYNTHESIZE_BOOL(Revivable);
     
+    ///////////////////////// Item //////////////////////
+    typedef CMultiRefVec<CItem*> VEC_ITEMS;
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(VEC_ITEMS, m_vecItems, Items);
+    void setPackageSize(int iSize);
+    bool addItem(CItem* pItem);
+    void delItem(int iIndex);
+    CItem* getItem(int iIndex);
+    
+    virtual int useItem(int iIndex);
     /////////////////////// doing - begin ////////////////////////////
     enum DOING_FLAG_BIT
     {

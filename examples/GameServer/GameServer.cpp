@@ -29,7 +29,7 @@ public:
 
         m_iTargetId = pSource->getId();
         u->setCastTarget(CCommandTarget(m_iTargetId));
-        u->cast(u->getAttackSkillId());
+        u->castSkill(u->getAttackSkillId());
     }
 
     virtual void onUnitTick(float dt)
@@ -39,7 +39,7 @@ public:
         if (m_iTargetId != 0)
         {
             u->setCastTarget(CCommandTarget(m_iTargetId));
-            u->cast(u->getAttackSkillId());
+            u->castSkill(u->getAttackSkillId());
         }
     }
 
@@ -138,7 +138,7 @@ CMyWorld::CMyWorld()
     //u->setAI<CUnitEventAdapter>();
 
     u->setCastTarget(CCommandTarget(m_iUnitId));
-    u->cast(u->getAttackSkillId());
+    u->castSkill(u->getAttackSkillId());
     //atk->setExAttackSpeed(CExtraCoeff(1.0, 0.0));
 
 }
@@ -168,7 +168,7 @@ void CMyWorld::onTick(float dt)
     if (u)
     {
         u->setCastTarget(CCommandTarget(m_iUnitId));
-        u->cast(u->getAttackSkillId());
+        u->castSkill(u->getAttackSkillId());
     }
 }
 

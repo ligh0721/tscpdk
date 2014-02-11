@@ -42,11 +42,13 @@ bool CSkill::isCoolingDown() const
 void CSkill::resetCD()
 {
     m_fCoolingDownElapsed = FLT_MAX;
+    getOwner()->updateSkillCD(getId());
 }
 
 void CSkill::coolDown()
 {
     setCoolingDownElapsed(0.0f);
+    getOwner()->skillCD(this);
 }
 
 void CSkill::onUnitAddSkill()
