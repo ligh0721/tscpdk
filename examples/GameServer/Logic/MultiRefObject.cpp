@@ -59,6 +59,11 @@ CMultiRefObject* CMultiRefObject::copy() const
     return new CMultiRefObject;
 }
 
+const char* CMultiRefObject::getDbgTag() const
+{
+    return "";
+}
+
 int CMultiRefObject::getId() const
 {
     return CONST_ID;
@@ -98,12 +103,12 @@ void CDbgMultiRefObjectManager::delObject(CMultiRefObject* pObject)
     m_setObjs.erase(pObject);
 }
 
-void CDbgMultiRefObjectManager::printDbgInfo()
+void CDbgMultiRefObjectManager::printDbgInfo(const char* pFile, int iLine)
 {
-    printf("ObjectName(RefCount) {\n");
+    fprintf(stdout, "ObjectName(Tag)(RefCount) {\n");
     for (auto it = m_setObjs.begin(); it != m_setObjs.end(); ++it)
     {
-        printf("    %s(%d)\n", (*it)->getDbgClassName(), (*it)->getRefCount());
+        fprintf(stdout, "    %s(%s)(%d)\n", (*it)->getDbgClassName(), (*it)->getDbgTag(), (*it)->getRefCount());
     }
-    printf("} NumberOfObjects(%zu)\n", m_setObjs.size());
+    fprintf(stdout, "} NumberOfObjects(%zu), %s: %d\n", m_setObjs.size(), pFile, iLine);
 }

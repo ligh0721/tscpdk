@@ -11,6 +11,7 @@
 #include "MultiRefObject.h"
 #include "Level.h"
 #include "Base.h"
+// 禁止在此处包含Unit.h文件
 
 
 // 攻击数值，由多种类型的攻击组合而成
@@ -125,8 +126,7 @@ public:
 class CExtraCoeff
 {
 public:
-    CExtraCoeff();
-    CExtraCoeff(float fMulriple, float fAddend);
+    CExtraCoeff(float fMulriple = 1.0f, float fAddend = 0.0f);
     
     float getValue(float fBase) const;
     
@@ -137,7 +137,7 @@ public:
 class CUnitForce
 {
 public:
-    enum DAMAGE_TARGET_FLAG_BIT
+    enum EFFECTIVE_TARGET_FLAG_BIT
     {
         kSelf = 1 << 0,
         kOwn = 1 << 1,
@@ -150,6 +150,7 @@ public:
     
     bool isAllyOf(const CUnitForce* pForce) const;
     bool isEnemyOf(const CUnitForce* pForce) const;
+    bool isEffective(const CUnitForce* pForce, uint32_t dwEffectiveTypeFlags) const;
     
     void setForceByIndex(int iForceIndex);
     
@@ -193,8 +194,8 @@ public:
     enum TARGET_TYPE
     {
         kNoTarget = 0,
-        kPointTarget,
-        kUnitTarget
+        kUnitTarget,
+        kPointTarget
     };
     
 public:
@@ -213,10 +214,10 @@ public:
     CUnitEventAdapter();
     virtual ~CUnitEventAdapter();
     
-    inline virtual void onUnitLevelChange(int iChanged) {}
+    inline virtual void onUnitChangeLevel(int iChanged) {}
     inline virtual void onUnitRevive() {}
     inline virtual void onUnitDie() {}
-    inline virtual void onUnitHpChange(float fChanged) {}
+    inline virtual void onUnitChangeHp(float fChanged) {}
     inline virtual void onUnitTick(float dt) {}
     inline virtual CAttackData* onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget) { return pAttack; }
     inline virtual CAttackData* onUnitAttacked(CAttackData* pAttack, CUnit* pSource) { return pAttack; }
@@ -224,7 +225,16 @@ public:
     inline virtual void onUnitDamagedDone(float fDamage, CUnit* pSource) {}
     inline virtual void onUnitDamageTargetDone(float fDamage, CUnit* pTarget) {}
     inline virtual void onUnitDestroyProjectile(CProjectile* pProjectile) {}
+    inline virtual void onUnitAddActiveSkill(CActiveSkill* pSkill) {}
+    inline virtual void onUnitDelActiveSkill(CActiveSkill* pSkill) {}
+    inline virtual void onUnitAddPassiveSkill(CPassiveSkill* pSkill) {}
+    inline virtual void onUnitDelPassiveSkill(CPassiveSkill* pSkill) {}
+    inline virtual void onUnitAddBuffSkill(CBuffSkill* pSkill) {}
+    inline virtual void onUnitDelBuffSkill(CBuffSkill* pSkill) {}
     inline virtual void onUnitSkillReady(CSkill* pSkill) {}
+    inline virtual void onUnitAddItem(int iIndex) {}
+    inline virtual void onUnitDelItem(int iIndex) {}
+    //inline virtual void onUnitChangeItemStackCount(CItem* pItem, int iChange) {}
     
     M_SYNTHESIZE(CUnit*, m_pNotifyUnit, NotifyUnit);
 };
@@ -237,7 +247,9 @@ protected:
 public:
     CUnit(const char* pRootId);
     virtual ~CUnit();
-    
+
+    virtual const char* getDbgTag() const;
+
     M_SYNTHESIZE(CWorld*, m_pWorld, World);
     
     CUnit* getUnit(int id);
@@ -263,13 +275,13 @@ public:
     // @override
     
     // 等级变化时被通知，在通过addExp升级的时候，通常来讲iChanged总是为1，尽管经验有时会足够多以至于连升2级
-    virtual void onLevelChange(int iChanged);
+    virtual void onChangeLevel(int iChanged);
     // 复活时被通知
     virtual void onRevive();
     // 死亡时被通知
     virtual void onDie();
     // 血量变化时被通知
-    virtual void onHpChange(float fChanged);
+    virtual void onChangeHp(float fChanged);
     // 每个游戏刻被通知
     virtual void onTick(float dt);
     // 攻击发出时，攻击者被通知
@@ -284,15 +296,26 @@ public:
     virtual void onDamageTargetDone(float fDamage, CUnit* pTarget, uint32_t dwTriggerMask);
     // 攻击数据消除时被通知，通常由投射物携带攻击数据，二者生存期一致
     virtual void onDestroyProjectile(CProjectile* pProjectile);
-    // 技能CD结束时被通知
-    virtual void onSkillReady(CSkill* pSkill);
     
+    virtual void onAddActiveSkill(CActiveSkill* pSkill);
+    virtual void onDelActiveSkill(CActiveSkill* pSkill);
+    virtual void onAddPassiveSkill(CPassiveSkill* pSkill);
+    virtual void onDelPassiveSkill(CPassiveSkill* pSkill);
+    virtual void onAddBuffSkill(CBuffSkill* pSkill);
+    virtual void onDelBuffSkill(CBuffSkill* pSkill);
+    
+    // 技能CD结束时被通知
+    virtual void onSkillReady(CSkill* pSkill);  // 以后将区分出onItemReady
+    
+    virtual void onAddItem(int iIndex);
+    virtual void onDelItem(int iIndex);
+    //virtual void onChangeItemStackCount(CItem* pItem, int iChange);
 protected:
     CUnitEventAdapter* m_pAI;
     
 public:
     template <typename ADAPTER>
-    void setAI();
+    void setAI(const ADAPTER&);
     void delAI();
     
 
@@ -368,15 +391,18 @@ public:
     // 下列函数将安全的增删触发器
     
     void addActiveSkill(CActiveSkill* pSkill, bool bNotify = true);
+    void addActiveSkill(int id, int iLevel = 1);
     void delActiveSkill(int id, bool bNotify = true);
     CActiveSkill* getActiveSkill(int id);
     
     void addPassiveSkill(CPassiveSkill* pSkill, bool bNotify = true);
+    void addPassiveSkill(int id, int iLevel = 1);
     void delPassiveSkill(int id, bool bNotify = true);
     CPassiveSkill* getPassiveSkill(int id);
     
-    void addBuffSkill(CBuffSkill* pSkill);
-    void delBuffSkill(int id);
+    void addBuffSkill(CBuffSkill* pSkill, bool bNotify = true);
+    void addBuffSkill(int id, int iSrcUnit, int iLevel = 1);
+    void delBuffSkill(int id, bool bNotify = true);
     CBuffSkill* getBuffSkill(int id);
     
 protected:
@@ -438,11 +464,9 @@ protected:
     //void addBuff(CBuffSkill* pBuff, bool bForce = false);
     //void delBuff(CBuffSkill* pBuff, bool bAfterTriggerLoop = true);
     //void coverBuff(CBuffSkill* pBuff);
-    
-protected:
-    int m_iSuspendRef;
-    
+        
 public:
+    M_SYNTHESIZE_READONLY(int, m_iSuspendRef, SuspendRef);
     virtual bool isSuspended() const;
     virtual void suspend();
     virtual void resume();
@@ -621,6 +645,7 @@ public:
     typedef CMultiRefMap<CSkill*> MAP_SKILLS;
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_SKILLS, m_mapSkillsCD, SkillsCD);
     void addSkillCD(CSkill* pSkill);
+    void delSkillCD(int id);
     bool isSkillCD(int id) const;
     CSkill* getSkillCD(int id) const;
     void updateSkillCD(int id);
@@ -645,12 +670,13 @@ public:
 
 
 // ----------- Inline Implementation--------------
+
 // CUnit
 template <typename ADAPTER>
-inline void CUnit::setAI()
+inline void CUnit::setAI(const ADAPTER&)
 {
     ADAPTER* pAdapter = new ADAPTER;
-    CUnitEventAdapter* pAI = dynamic_cast<CUnitEventAdapter*>(pAdapter);
+    CUnitEventAdapter* pAI = DCAST(pAdapter, CUnitEventAdapter*);
     if (pAI == NULL)
     {
         delete pAdapter;

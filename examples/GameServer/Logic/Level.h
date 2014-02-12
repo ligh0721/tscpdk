@@ -28,7 +28,7 @@ public:
     virtual ~CLevelExp();
     
     virtual void updateMaxExp(); // @override
-    virtual void onLevelChange(int iChanged); // @override
+    virtual void onChangeLevel(int iChanged); // @override
     void addExp(int iExp);
     void addLevel(int iLvl);
     virtual void setLevel(int iLvl);

@@ -29,6 +29,11 @@ CSkill::~CSkill()
 {
 }
 
+const char* CSkill::getDbgTag() const
+{
+    return getName();
+}
+
 const char* CSkill::getRootId() const
 {
     return CONST_ROOT_ID.c_str();
@@ -121,22 +126,15 @@ void CSkill::onUnitDestroyProjectile(CProjectile* pProjectile)
 {
 }
 
-void CSkill::onAddToUnit(CUnit* pOwner, bool bNotify)
+void CSkill::onAddToUnit(CUnit* pOwner)
 {
     setOwner(pOwner);
-    if (bNotify)
-    {
-        onUnitAddSkill();
-    }
+    onUnitAddSkill();
 }
 
-void CSkill::onDelFromUnit(bool bNotify)
+void CSkill::onDelFromUnit()
 {
-    if (bNotify)
-    {
-        onUnitDelSkill();
-    }
-    
+    onUnitDelSkill();
     setOwner(NULL);
 }
 
@@ -150,22 +148,52 @@ void CSkill::unsetTriggerFlags(uint32_t dwTriggerFlags)
     m_dwTriggerFlags &= ~dwTriggerFlags;
 }
 
-//
-/*
-// CLevelLimitSkill
-CLevelLimitSkill::CLevelLimitSkill()
+// CActiveSkill
+CActiveSkill::CActiveSkill(const char* pRootId, const char* pName, float fCoolDown, CCommandTarget::TARGET_TYPE eCastType, uint32_t dwEffectiveTypeFlags)
+: CSkill(pRootId, pName, fCoolDown)
+, m_eCastTargetType(eCastType)
+, m_dwEffectiveTypeFlags(dwEffectiveTypeFlags)
+, m_fCastRange(0.0f)
+, m_fCastTargetRadius(0.0f)
+//, m_iCastTargetUnit(0)
+, m_iTemplateProjectile(0)
+{
+    setDbgClassName("CActiveSkill");
+}
+
+CActiveSkill::~CActiveSkill()
 {
 }
 
-CLevelLimitSkill::~CLevelLimitSkill()
+bool CActiveSkill::cast()
 {
+    if (isCoolingDown())
+    {
+        return false;
+    }
+    
+    if (checkConditions() == false)
+    {
+        return false;
+    
+    }
+    
+    CUnit* o = getOwner();
+    LOG("%s%s%s..", o->getName(), o->getAttackSkillId() == getId() ? "的" : "施放了", getName());
+    coolDown();
+    onUnitCastSkill();  // onCastSkill在cd变化下面，所以可以添加重置cd的逻辑
+    
+    return true;
 }
 
-bool CLevelLimitSkill::canBeLearning(uint32_t dwLvl) const
+bool CActiveSkill::checkConditions()
 {
-    return (m_dwLvl < m_dwMaxLvl) && (dwLvl >= m_dwLvl * m_dwLvlStp + m_dwLvlLmt);
+    return true;
 }
-*/
+
+void CActiveSkill::onUnitCastSkill()
+{
+}
 
 // CPassiveSkill
 CPassiveSkill::CPassiveSkill(const char* pRootId, const char* pName, float fCoolDown)
@@ -198,104 +226,6 @@ bool CBuffSkill::isDone() const
     return m_fElapsed >= m_fDuration;
 }
 
-// CActiveSkill
-CActiveSkill::CActiveSkill(const char* pRootId, const char* pName, float fCoolDown, CCommandTarget::TARGET_TYPE eCastType, uint32_t dwDamageTypeFlags)
-: CSkill(pRootId, pName, fCoolDown)
-, m_eCastTargetType(eCastType)
-, m_dwCastTargetDamageTypeFlags(dwDamageTypeFlags)
-, m_fCastRange(0.0f)
-, m_fCastTargetRadius(0.0f)
-//, m_iCastTargetUnit(0)
-, m_iTemplateProjectile(0)
-{
-    setDbgClassName("CActiveSkill");
-}
-
-CActiveSkill::~CActiveSkill()
-{
-}
-
-bool CActiveSkill::cast()
-{
-    if (isCoolingDown())
-    {
-        return false;
-    }
-    
-    if (checkCondition() == false)
-    {
-        return false;
-    }
-    
-    coolDown();
-    onUnitCastSkill();  // onCastSkill在cd变化下面，所以可以添加重置cd的逻辑
-    
-    return true;
-}
-
-void CActiveSkill::onUnitCastSkill()
-{
-}
-
-bool CActiveSkill::checkCondition()
-{
-    return true;
-}
-
-// CAuraPas
-CAuraPas::CAuraPas(const char* pRootId, const char* pName, float fInterval, int iTemplateBuff, float fRange, uint32_t dwTargetFlags)
-: CPassiveSkill(pRootId, pName)
-, m_iTemplateBuff(iTemplateBuff)
-, m_fRange(fRange)
-, m_dwTargetFlags(dwTargetFlags)
-{
-    setDbgClassName("CAuraPas");
-    setInterval(fInterval);
-}
-
-CAuraPas::~CAuraPas()
-{
-}
-
-CMultiRefObject* CAuraPas::copy() const
-{
-    return new CAuraPas(getRootId(), getName(), m_fInterval, m_iTemplateBuff, m_fRange, m_dwTargetFlags);
-}
-
-void CAuraPas::onUnitInterval()
-{
-    CUnit* o = getOwner();
-    CWorld* w = o->getWorld();
-    CBuffSkill* pBuff = NULL;
-    
-    CWorld::MAP_UNITS& mapUnits = w->getUnits();
-    M_MAP_FOREACH(mapUnits)
-    {
-        CUnit* u = M_MAP_EACH;
-        M_MAP_NEXT;
-        
-        if (!(
-            ((u == o) && (m_dwTargetFlags & CUnitForce::kSelf)) ||
-            ((u != o) && (u->isAllyOf(o) && (m_dwTargetFlags & CUnitForce::kAlly))) ||
-            (u->isEnemyOf(o) && (m_dwTargetFlags & CUnitForce::kEnemy))
-            ))
-        {
-            continue;
-        }
-
-        if (o->getPosition().getDistance(u->getPosition()) > m_fRange)
-        {
-            continue;
-        }
-        
-        pBuff = (pBuff == NULL) ?
-            (dynamic_cast<CBuffSkill*>(w->copySkill(m_iTemplateBuff))) :
-            (dynamic_cast<CBuffSkill*>(pBuff->copy()));
-        
-        u->addBuffSkill(pBuff);
-    }
-}
-
 // CAttackAct
 const float CAttackAct::CONST_MIN_ATTACK_SPEED_INTERVAL = 0.1; // 0.1s
 const float CAttackAct::CONST_MIN_ATTACK_SPEED_MULRIPLE = 0.2; // 20%
@@ -313,7 +243,13 @@ CAttackAct::CAttackAct(const char* pRootId, const char* pName, float fCoolDown, 
 
 CMultiRefObject* CAttackAct::copy() const
 {
-    return new CAttackAct(getRootId(), getName(), m_fCoolDown, m_oAttackValue, m_fAttackValueRandomRange);
+    CAttackAct* pRet = new CAttackAct(getRootId(), getName(), m_fCoolDown, m_oAttackValue, m_fAttackValueRandomRange);
+    pRet->setCastTargetType(getCastTargetType());
+    pRet->setEffectiveTypeFlags(getEffectiveTypeFlags());
+    pRet->setCastRange(getCastRange());
+    pRet->setCastTargetRadius(getCastTargetRadius());
+    pRet->setTemplateProjectile(getTemplateProjectile());
+    return pRet;
 }
 
 void CAttackAct::onUnitAddSkill()
@@ -324,6 +260,18 @@ void CAttackAct::onUnitAddSkill()
 void CAttackAct::onUnitDelSkill()
 {
     getOwner()->setAttackSkillId(0);
+}
+
+bool CAttackAct::checkConditions()
+{
+    CUnit* o = getOwner();
+    CUnit* t = o->getUnit(o->getCastTarget().getTargetUnit());
+    if (t == NULL || t->isDead())
+    {
+        return false;
+    }
+    
+    return true;
 }
 
 void CAttackAct::onUnitCastSkill()
@@ -344,8 +292,6 @@ void CAttackAct::onUnitCastSkill()
     
     ad = o->attackAdv(ad, t);
     
-    LOG("%s的攻击..", o->getName());
-    
     // 这里模拟命中
     if (ad == NULL)
     {
@@ -357,18 +303,6 @@ void CAttackAct::onUnitCastSkill()
     pAi->iTarget = t->getId();
     pAi->pAttackData = ad;
     o->runAction(new CCallFunc(this, (FUNC_CALLFUNC_ND)&CAttackAct::onTestAttackEffect, pAi));
-}
-
-bool CAttackAct::checkCondition()
-{
-    CUnit* o = getOwner();
-    CUnit* t = o->getUnit(o->getCastTarget().getTargetUnit());
-    if (t == NULL || t->isDead())
-    {
-        return false;
-    }
-    
-    return true;
 }
 
 float CAttackAct::getBaseAttackValue(CAttackValue::ATTACK_TYPE eAttackType) const
@@ -473,11 +407,184 @@ void CAttackAct::onTestAttackEffect(CMultiRefObject* pObj, void* pData)
     delete pAi;
 }
 
+// CBuffMakerAct
+CBuffMakerAct::CBuffMakerAct(const char* pRootId, const char* pName, float fCoolDown, int iTemplateBuff, CCommandTarget::TARGET_TYPE eCastType, uint32_t dwEffectiveTypeFlags)
+: CActiveSkill(pRootId, pName, fCoolDown, eCastType, dwEffectiveTypeFlags)
+, m_iTemplateBuff(iTemplateBuff)
+, m_pTarget(NULL)
+{
+    setDbgClassName("CBuffMakerAct");
+}
+
+CMultiRefObject* CBuffMakerAct::copy() const
+{
+    CBuffMakerAct* pRet = new CBuffMakerAct(getRootId(), getName(), getCoolDown(), getTemplateBuff(), getCastTargetType(), getEffectiveTypeFlags());
+    pRet->setCastRange(getCastRange());
+    pRet->setCastTargetRadius(getCastTargetRadius());
+    pRet->setTemplateProjectile(getTemplateProjectile());
+    return pRet;
+}
+
+bool CBuffMakerAct::checkConditions()
+{
+    CUnit* o = getOwner();
+    switch (getCastTargetType())
+    {
+    case CCommandTarget::kNoTarget:
+        m_pTarget = o;
+        break;
+        
+    case CCommandTarget::kUnitTarget:
+        m_pTarget = o->getUnit(o->getCastTarget().getTargetUnit());
+        if (m_pTarget != NULL && m_pTarget->isDead())
+        {
+            m_pTarget = NULL;
+        }
+        break;
+        
+    default:
+        ;
+    }
+    
+    if (m_pTarget != NULL &&
+        !o->isEffective(DCAST(m_pTarget, CUnitForce*), getEffectiveTypeFlags()))
+    {
+        // 如果有待选目标(自身或命令目标)，但是无法作用
+        if (getCastTargetRadius() <= FLT_EPSILON ||
+            getEffectiveTypeFlags() == CUnitForce::kSelf)
+        {
+            // 如果不能扩展周围单位
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void CBuffMakerAct::onUnitCastSkill()
+{
+    CUnit* o = getOwner();
+    switch (getCastTargetType())
+    {
+    case CCommandTarget::kNoTarget:
+    case CCommandTarget::kUnitTarget:
+        if (o->isEffective(DCAST(m_pTarget, CUnitForce*), getEffectiveTypeFlags()))
+        {
+            m_pTarget->addBuffSkill(getTemplateBuff(), o->getId(), getLevel());
+        }
+        break;
+        
+    default:
+        ;
+    }
+    
+    if (getCastTargetRadius() <= FLT_EPSILON)
+    {
+        return;
+    }
+    
+    CWorld* w = o->getWorld();
+    CBuffSkill* pBuff = NULL;
+    CWorld::MAP_UNITS& mapUnits = w->getUnits();
+    M_MAP_FOREACH(mapUnits)
+    {
+        CUnit* u = M_MAP_EACH;
+        M_MAP_NEXT;
+        
+        if (u == NULL || u->isDead())
+        {
+            continue;
+        }
+        
+        if (!o->isEffective(DCAST(u, CUnitForce*), m_dwEffectiveTypeFlags))
+        {
+            continue;
+        }
+
+        if (u->getPosition().getDistance(o->getPosition()) > getCastTargetRadius())
+        {
+            continue;
+        }
+        
+        if (pBuff == NULL)
+        {
+            w->copySkill(getTemplateBuff())->dcast(pBuff);
+        }
+        else
+        {
+            pBuff->copy()->dcast(pBuff);
+        }
+        
+        u->addBuffSkill(pBuff);
+    }
+}
+
+// CAuraPas
+CAuraPas::CAuraPas(const char* pRootId, const char* pName, float fInterval, int iTemplateBuff, float fRange, uint32_t dwEffectiveTypeFlags)
+: CPassiveSkill(pRootId, pName)
+, m_iTemplateBuff(iTemplateBuff)
+, m_fRange(fRange)
+, m_dwEffectiveTypeFlags(dwEffectiveTypeFlags)
+{
+    setDbgClassName("CAuraPas");
+    setInterval(fInterval);
+}
+
+CAuraPas::~CAuraPas()
+{
+}
+
+CMultiRefObject* CAuraPas::copy() const
+{
+    return new CAuraPas(getRootId(), getName(), m_fInterval, m_iTemplateBuff, m_fRange, m_dwEffectiveTypeFlags);
+}
+
+void CAuraPas::onUnitInterval()
+{
+    CUnit* o = getOwner();
+    CWorld* w = o->getWorld();
+    CBuffSkill* pBuff = NULL;
+    
+    CWorld::MAP_UNITS& mapUnits = w->getUnits();
+    M_MAP_FOREACH(mapUnits)
+    {
+        CUnit* u = M_MAP_EACH;
+        M_MAP_NEXT;
+        
+        if (u == NULL || u->isDead())
+        {
+            continue;
+        }
+        
+        if (!o->isEffective(DCAST(u, CUnitForce*), m_dwEffectiveTypeFlags))
+        {
+            continue;
+        }
+
+        if (u->getPosition().getDistance(o->getPosition()) > m_fRange)
+        {
+            continue;
+        }
+        
+        if (pBuff == NULL)
+        {
+            w->copySkill(m_iTemplateBuff)->dcast(pBuff);
+        }
+        else
+        {
+            pBuff->copy()->dcast(pBuff);
+        }
+        
+        u->addBuffSkill(pBuff);
+    }
+}
+
 // CAttackBuffMakerPas
-CAttackBuffMakerPas::CAttackBuffMakerPas(const char* pRootId, const char* pName, float fProbability, int iTemplateBuff, const CExtraCoeff& roExAttackValue)
+CAttackBuffMakerPas::CAttackBuffMakerPas(const char* pRootId, const char* pName, float fProbability, int iTemplateBuff, bool bToSelf, const CExtraCoeff& roExAttackValue)
 : CPassiveSkill(pRootId, pName)
 , m_fProbability(fProbability)
 , m_iTemplateBuff(iTemplateBuff)
+, m_bToSelf(bToSelf)
 , m_oExAttackValue(roExAttackValue)
 {
     setDbgClassName("CAttackBuffMakerPas");
@@ -486,7 +593,7 @@ CAttackBuffMakerPas::CAttackBuffMakerPas(const char* pRootId, const char* pName,
 
 CMultiRefObject* CAttackBuffMakerPas::copy() const
 {
-    return new CAttackBuffMakerPas(getRootId(), getName(), m_fProbability, m_iTemplateBuff, m_oExAttackValue);
+    return new CAttackBuffMakerPas(getRootId(), getName(), m_fProbability, m_iTemplateBuff, m_bToSelf, m_oExAttackValue);
 }
 
 CAttackData* CAttackBuffMakerPas::onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget)
@@ -507,10 +614,76 @@ CAttackData* CAttackBuffMakerPas::onUnitAttackTarget(CAttackData* pAttack, CUnit
     
     if (m_iTemplateBuff != 0)
     {
-        pAttack->addAttackBuff(CAttackBuff(m_iTemplateBuff, getLevel()));
+        if (isToSelf())
+        {
+            CUnit* o = getOwner();
+            o->addBuffSkill(m_iTemplateBuff, o->getId(), getLevel());
+        }
+        else
+        {
+            pAttack->addAttackBuff(CAttackBuff(m_iTemplateBuff, getLevel()));
+        }
     }
     
     return pAttack;
+}
+// CStunBuff
+CStunBuff::CStunBuff(const char* pRootId, const char* pName, float fDuration, bool bStackable)
+: CBuffSkill(pRootId, pName, fDuration, bStackable)
+{
+    setDbgClassName("CStunBuff");
+}
+
+CMultiRefObject* CStunBuff::copy() const
+{
+    return new CStunBuff(getRootId(), getName(), m_fDuration, m_bStackable);
+}
+
+void CStunBuff::onUnitAddSkill()
+{
+    CUnit* o = getOwner();
+    o->suspend();
+    
+    LOG("%s%s中", o->getName(), getName());
+}
+
+void CStunBuff::onUnitDelSkill()
+{
+    CUnit* o = getOwner();
+    o->resume();
+    
+    if (!o->isSuspended())
+    {
+        LOG("%s不在%s", o->getName(), getName());
+    }
+}
+
+// CDoubleAttackBuff
+CDoubleAttackBuff::CDoubleAttackBuff(const char* pRootId, const char* pName)
+: CBuffSkill(pRootId, pName, 0.0f, true)
+{
+    setDbgClassName("CDoubleAttackBuff");
+}
+
+CMultiRefObject* CDoubleAttackBuff::copy() const
+{
+    return new CDoubleAttackBuff(getRootId(), getName());
+}
+
+void CDoubleAttackBuff::onUnitAddSkill()
+{
+    CUnit* o = getOwner();
+    if (o->getAttackSkillId() == 0)
+    {
+        return;
+    }
+    
+    CAttackAct* pAtk = NULL;
+    o->getActiveSkill(o->getAttackSkillId())->dcast(pAtk);
+    
+    pAtk->resetCD();
+    
+    LOG("%s将进行%s", o->getName(), getName());
 }
 
 // CSpeedBuff
@@ -534,11 +707,13 @@ void CSpeedBuff::onUnitAddSkill()
     const CExtraCoeff& rExMs = o->getExMoveSpeed();
     o->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() + m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() + m_oExMoveSpeedDelta.getAddend()));
     
-    CAttackAct* pAtkAct = dynamic_cast<CAttackAct*>(o->getActiveSkill(o->getAttackSkillId()));
+    CAttackAct* pAtkAct = NULL;
+    o->getActiveSkill(o->getAttackSkillId())->dcast(pAtkAct);
     if (pAtkAct == NULL)
     {
         return;
     }
+    
     float fTestOld = pAtkAct->getRealAttackInterval();
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() + m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() + m_oExAttackSpeedDelta.getAddend()));
@@ -553,11 +728,13 @@ void CSpeedBuff::onUnitDelSkill()
     const CExtraCoeff& rExMs = o->getExMoveSpeed();
     o->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() - m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() - m_oExMoveSpeedDelta.getAddend()));
     
-    CAttackAct* pAtkAct = dynamic_cast<CAttackAct*>(o->getActiveSkill(o->getAttackSkillId()));
+    CAttackAct* pAtkAct = NULL;
+    o->getActiveSkill(o->getAttackSkillId())->dcast(pAtkAct);
     if (pAtkAct == NULL)
     {
         return;
     }
+    
     float fTestOld = pAtkAct->getRealAttackInterval();
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() - m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() - m_oExAttackSpeedDelta.getAddend()));
@@ -584,13 +761,13 @@ CMultiRefObject* CHpChangeBuff::copy() const
 void CHpChangeBuff::onUnitAddSkill()
 {
     CUnit* o = getOwner();
-    LOG("%s血流不止(%.1f%s/s)\n", o->getName(), getHpChange(), isPercentile() ? "%%" : "");
+    LOG("%s获得%s状态(%.1f%s/s)\n", o->getName(), getName(), isPercentile() ? getHpChange() * 100 / getInterval() : getHpChange() / getInterval(), isPercentile() ? "%" : "");
 }
 
 void CHpChangeBuff::onUnitDelSkill()
 {
     CUnit* o = getOwner();
-    LOG("%s止住了流血\n", o->getName());
+    LOG("%s失去%s状态\n", o->getName(), getName());
 }
 
 void CHpChangeBuff::onUnitInterval()
@@ -599,7 +776,7 @@ void CHpChangeBuff::onUnitInterval()
     float fNewHp = o->getHp();
     if (isPercentile())
     {
-        fNewHp += o->getMaxHp() * m_fHpChange / 100;
+        fNewHp += o->getMaxHp() * m_fHpChange;
     }
     else
     {

@@ -13,25 +13,25 @@
 
 
 // CItem
-CItem::CItem(const char* pRootId, const char* pName, ITEM_TYPE eItemType, int iMaxStackSize)
+CItem::CItem(const char* pRootId, const char* pName, ITEM_TYPE eItemType, unsigned int uMaxStackSize)
 : CONST_ROOT_ID(pRootId)
 , m_sName(pName)
-, m_eItemType(kNormal)
+, m_eItemType(eItemType)
 , m_bEquipped(false)
-, m_iStackCount(1)
-, m_iMaxStackSize(iMaxStackSize)
-, m_iActSkillId(0)
-, m_pActSkill(NULL)
+, m_uStackCount(1)
+, m_uMaxStackSize(uMaxStackSize)
 , m_pOwner(NULL)
 {
+    setDbgClassName("CItem");
 }
 
 CItem::~CItem()
 {
-    if (m_pActSkill != NULL)
-    {
-        m_pActSkill->release();
-    }
+}
+
+const char* CItem::getDbgTag() const
+{
+    return getName();
 }
 
 const char* CItem::getRootId() const
@@ -39,13 +39,28 @@ const char* CItem::getRootId() const
     return CONST_ROOT_ID.c_str();
 }
 
-void CItem::addStackCount()
+unsigned int CItem::getFreeStackSize() const
 {
-    if (m_iStackCount >= m_iMaxStackSize)
-    {
-        return;
-    }
-    ++m_iStackCount;
+    return max(m_uMaxStackSize - m_uStackCount, (unsigned int)0);
+}
+
+unsigned int CItem::incStackCount(unsigned int uIncrease)
+{
+    unsigned int uRet = min(uIncrease, getFreeStackSize());
+    m_uStackCount += uRet;
+    return uRet;
+}
+
+unsigned int CItem::decStatckCount(unsigned int uDecrease)
+{
+    unsigned int uRet = min(uDecrease, m_uStackCount);
+    m_uStackCount -= uRet;
+    return uRet;
+}
+
+void CItem::addActiveSkill(int id)
+{
+    m_vecActSkillIds.push_back(id);
 }
 
 void CItem::addPassiveSkill(int id)
@@ -63,10 +78,45 @@ void CItem::onUnitDelItem()
 
 bool CItem::use()
 {
+    if (checkConditions() == false)
+    {
+        return false;
+    }
+    
+    CUnit* o = getOwner();
+
+    if (m_eItemType == kEquipment)
+    {
+        // 属于装备，使用代表进行装备
+        // TODO: 装备上
+    }
+    else
+    {
+        // 直接可以使用
+        LOG("%s使用了%s", o->getName(), getName());
+        if (m_vecActSkills.front()->cast() == false)
+        {
+            return false;
+        }
+        
+        onUnitUseItem();
+        
+        if (m_eItemType == kConsumable)
+        {
+            // 是消耗品
+            decStatckCount(1);
+        }
+    }
+    
+    return true;
+}
+
+bool CItem::checkConditions()
+{
     CUnit* o = getOwner();
     if (o == NULL)
     {
-        return NULL;
+        return false;
     }
     
     if (m_eItemType == kEquipment)
@@ -77,28 +127,17 @@ bool CItem::use()
     else
     {
         // 直接可以使用
-        if (m_pActSkill == NULL)
+        if (m_vecActSkills.empty())
         {
             // 无主动技能，直接返回
             return false;
         }
         
-        if (m_pActSkill->cast() == false)
+        if (m_vecActSkills.front()->getCastTargetType() != CCommandTarget::kNoTarget ||
+            m_vecActSkills.front()->isCoolingDown() ||
+            m_vecActSkills.front()->checkConditions() == false)
         {
             return false;
-        }
-        
-        onUnitUseItem();
-        
-        if (m_eItemType == kConsumable)
-        {
-            // 是消耗品
-            --m_iStackCount;
-            if (m_iStackCount == 0)
-            {
-                // 应该删除该物品
-                onDelFromSlot();
-            }
         }
     }
     
@@ -109,7 +148,7 @@ void CItem::onUnitUseItem()
 {
 }
 
-void CItem::onAddToNewSlot(CUnit* pOwner, bool bNotify)
+void CItem::onAddToNewSlot(CUnit* pOwner)
 {
     setOwner(pOwner);
     
@@ -118,51 +157,51 @@ void CItem::onAddToNewSlot(CUnit* pOwner, bool bNotify)
         addSkillToOwner(pOwner);
     }
     
-    if (bNotify)
-    {
-        onUnitAddItem();
-    }
+    onUnitAddItem();
 }
 
-void CItem::onDelFromSlot(bool bNotify)
+void CItem::onDelFromSlot()
 {
     if (m_eItemType != kEquipment)
     {
         delSkillFromOwner();
     }
     
-    if (bNotify)
-    {
-        onUnitDelItem();
-    }
+    onUnitDelItem();
     
     setOwner(NULL);
 }
 
-void CItem::addSkillToOwner(CUnit* pOwner)
+void CItem::addSkillToOwner(CUnit* pOwner, bool bNotify)
 {
     CWorld* w = pOwner->getWorld();
 
-    if (m_iActSkillId != 0)
+    if (m_vecActSkills.empty())
     {
-        if (m_pActSkill == NULL)
+        for (auto it = m_vecActSkillIds.begin(); it != m_vecActSkillIds.end(); ++it)
         {
-            m_pActSkill = dynamic_cast<CActiveSkill*>(w->copySkill(m_iActSkillId));
-            if (m_pActSkill != NULL)
+            CActiveSkill* pActSkill = NULL;
+            w->copySkill(*it)->dcast(pActSkill);
+            if (pActSkill != NULL)
             {
-                m_pActSkill->retain();
+                m_vecActSkills.addObject(pActSkill);
             }
-            
         }
-        
-        pOwner->addActiveSkill(m_pActSkill, false);
+    }
+    
+    M_VEC_FOREACH(m_vecActSkills)
+    {
+        CActiveSkill* pActSkill = M_VEC_EACH;
+        pOwner->addActiveSkill(pActSkill, bNotify);
+        M_VEC_NEXT;
     }
     
     if (m_vecPasSkills.empty())
     {
         for (auto it = m_vecPasSkillIds.begin(); it != m_vecPasSkillIds.end(); ++it)
         {
-            CPassiveSkill* pPasSkill = dynamic_cast<CPassiveSkill*>(w->copySkill(*it));
+            CPassiveSkill* pPasSkill = NULL;
+            w->copySkill(*it)->dcast(pPasSkill);
             if (pPasSkill != NULL)
             {
                 m_vecPasSkills.addObject(pPasSkill);
@@ -173,23 +212,26 @@ void CItem::addSkillToOwner(CUnit* pOwner)
     M_VEC_FOREACH(m_vecPasSkills)
     {
         CPassiveSkill* pPasSkill = M_VEC_EACH;
-        pOwner->addPassiveSkill(pPasSkill, false);
+        pOwner->addPassiveSkill(pPasSkill, bNotify);
         M_VEC_NEXT;
     }
 }
 
-void CItem::delSkillFromOwner()
+void CItem::delSkillFromOwner(bool bNotify)
 {
     CUnit* o = getOwner();
-    if (m_pActSkill != NULL)
+    
+    M_VEC_FOREACH(m_vecActSkills)
     {
-        o->delActiveSkill(m_iActSkillId, false);
+        CActiveSkill* pActSkill = M_VEC_EACH;
+        o->delActiveSkill(pActSkill->getId(), bNotify);
+        M_VEC_NEXT;
     }
     
     M_VEC_FOREACH(m_vecPasSkills)
     {
         CPassiveSkill* pPasSkill = M_VEC_EACH;
-        o->delPassiveSkill(pPasSkill->getId(), false);
+        o->delPassiveSkill(pPasSkill->getId(), bNotify);
         M_VEC_NEXT;
     }
 }

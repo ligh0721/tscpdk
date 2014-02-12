@@ -34,29 +34,35 @@ public:
     };
     
 public:
-    // iMaxStackSize可以取INFINITE，无限堆叠；eItemType为kConsumable时，iMaxStackSize可以取0，代表拾起立即消耗
-    CItem(const char* pRootId, const char* pName, ITEM_TYPE eItemType, int iMaxStackSize);
+    // uMaxStackSize可以取INFINITE，无限堆叠；eItemType为kConsumable时，uMaxStackSize可以取0，代表拾起立即消耗
+    CItem(const char* pRootId, const char* pName, ITEM_TYPE eItemType, unsigned int uMaxStackSize);
     virtual ~CItem();
-    
+
+    virtual const char* getDbgTag() const;
+
     const char* getRootId() const;
     M_SYNTHESIZE_STR(Name);
     
     M_SYNTHESIZE(ITEM_TYPE, m_eItemType, ItemType);
     
     M_SYNTHESIZE_BOOL(Equipped);
-    M_SYNTHESIZE(int, m_iStackCount, StackCount);
-    M_SYNTHESIZE(int, m_iMaxStackSize, MaxStackSize);
-    void addStackCount();
+    M_SYNTHESIZE(unsigned int, m_uStackCount, StackCount);
+    M_SYNTHESIZE(unsigned int, m_uMaxStackSize, MaxStackSize);
+    unsigned int getFreeStackSize() const;
+    unsigned int incStackCount(unsigned int uIncrease);
+    unsigned int decStatckCount(unsigned int uDecrease);
     
 protected:
-    typedef vector<int> VEC_PAS_SKILLIDS;
-    int m_iActSkillId;
-    VEC_PAS_SKILLIDS m_vecPasSkillIds;
+    typedef vector<int> VEC_SKILLIDS;
+    VEC_SKILLIDS m_vecActSkillIds;
+    VEC_SKILLIDS m_vecPasSkillIds;
     
 public:
+    typedef CMultiRefVec<CActiveSkill*> VEC_ACT_SKILLS;
     typedef CMultiRefVec<CPassiveSkill*> VEC_PAS_SKILLS;
-    M_SYNTHESIZE_READONLY(CActiveSkill*, m_pActSkill, ActiveSkill);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(VEC_ACT_SKILLS, m_vecActSkills, ActiveSkills);
     M_SYNTHESIZE_READONLY_PASS_BY_REF(VEC_PAS_SKILLS, m_vecPasSkills, PassiveSkills);
+    void addActiveSkill(int id);
     void addPassiveSkill(int id);
     M_SYNTHESIZE(CUnit*, m_pOwner, Owner);
     
@@ -66,15 +72,16 @@ public:
     
     // 调用完之后
     virtual bool use();
+    virtual bool checkConditions();
     virtual void onUnitUseItem();
     
     // 外部调用
-    void onAddToNewSlot(CUnit* pOwner, bool bNotify = true);
-    void onDelFromSlot(bool  bNotify = true);
+    void onAddToNewSlot(CUnit* pOwner);
+    void onDelFromSlot();
     
 protected:
-    void addSkillToOwner(CUnit* pOwner);
-    void delSkillFromOwner();
+    void addSkillToOwner(CUnit* pOwner, bool bNotify = false);
+    void delSkillFromOwner(bool bNotify = false);
     
 };
 

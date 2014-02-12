@@ -36,7 +36,7 @@ void CLevelExp::updateMaxExp()
     }
 }
 
-void CLevelExp::onLevelChange(int32_t iChanged)
+void CLevelExp::onChangeLevel(int32_t iChanged)
 {
 }
 
@@ -59,7 +59,7 @@ void CLevelExp::addExp(int iExp)
         {
             m_pUpdate->onLevelChange(this, 1);
         }
-        onLevelChange(1);
+        onChangeLevel(1);
     }
 }
 
@@ -92,7 +92,7 @@ void CLevelExp::setLevel(int iLvl)
         {
             m_pUpdate->onLevelChange(this, iChanged);
         }
-        onLevelChange(iChanged);
+        onChangeLevel(iChanged);
         updateMaxExp();
     }
 }

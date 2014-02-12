@@ -9,6 +9,8 @@
 #define	__COMDEF_H__
 
 
+#define DCAST(var, type) dynamic_cast<type>(var)
+
 #define M_SYNTHESIZE_READONLY(varType, varName, funName)\
 protected: varType varName;\
 public: inline virtual varType get##funName(void) const { return varName; }
@@ -36,7 +38,6 @@ public: inline virtual void set##funName(const char* p##funName){ m_s##funName =
 protected: varType varName;\
 public: inline virtual varType& get##funName(void) { return varName; }\
 public: inline virtual void set##funName(const varType& var){ varName = var; }
-
 
 #define M_LOGIC_CONSTRUCTOR(sub, super) \
     sub(int iKey): super(iKey) {}
@@ -263,7 +264,7 @@ const char* GBKToUTF8(const char* pGBKStr);
         if (!pInst) \
         { \
             pInst = new C##name; \
-            CMultiRefObject* pObj = dynamic_cast<CMultiRefObject*>(pInst); \
+            CMultiRefObject* pObj = DCAST(pInst, CMultiRefObject*); \
             if (pObj) \
             { \
                 pObj->retain(); \

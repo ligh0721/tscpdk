@@ -212,13 +212,6 @@ void CAttackData::addAttackBuff(const CAttackBuff& rAttackBuff)
 }
 
 // CExtraCoeff
-CExtraCoeff::CExtraCoeff()
-: m_fMulriple(1.0001f)
-, m_fAddend(0)
-{
-
-}
-
 CExtraCoeff::CExtraCoeff(float fMulriple, float fAddend)
 : m_fMulriple(fMulriple)
 , m_fAddend(fAddend)
@@ -252,6 +245,12 @@ bool CUnitForce::isEnemyOf(const CUnitForce* pForce) const
     return !isAllyOf(pForce);
 }
 
+bool CUnitForce::isEffective(const CUnitForce* pForce, uint32_t dwEffectiveTypeFlags) const
+{
+    return ((this == pForce) && (dwEffectiveTypeFlags & CUnitForce::kSelf)) ||
+           ((this != pForce) && (this->isAllyOf(pForce) && (dwEffectiveTypeFlags & CUnitForce::kAlly))) ||
+           (this->isEnemyOf(pForce) && (dwEffectiveTypeFlags & CUnitForce::kEnemy));
+}
 
 // CActionManager 
 CActionManager::CActionManager()
@@ -356,6 +355,11 @@ CUnit::~CUnit()
     delAI();
 }
 
+const char* CUnit::getDbgTag() const
+{
+    return getName();
+}
+
 CUnit* CUnit::getUnit(int id)
 {
     return id != 0 ? getWorld()->getUnit(id) : NULL;
@@ -363,7 +367,7 @@ CUnit* CUnit::getUnit(int id)
 
 void CUnit::skillCD(CSkill* pSkill)
 {
-    LOG("%s的%s技能开始冷却(%.1fs)\n", getName(), pSkill->getName(), pSkill->getCoolDown());
+    LOG("%s的%s技能开始冷却(%.1fs)", getName(), pSkill->getName(), pSkill->getCoolDown());
     getWorld()->addSkillCD(pSkill);
 }
 
@@ -395,7 +399,7 @@ bool CUnit::setHp(float fHp)
     m_fHp = min(fHp, m_fMaxHp);
     if (m_fHp != fOldHp)
     {
-        onHpChange(m_fHp - fOldHp);
+        onChangeHp(m_fHp - fOldHp);
     }
 
     if (m_fHp <= 0)
@@ -423,11 +427,11 @@ bool CUnit::isDead() const
     return m_fHp <= 0;
 }
 
-void CUnit::onLevelChange(int iChanged)
+void CUnit::onChangeLevel(int iChanged)
 {
     if (m_pAI)
     {
-        m_pAI->onUnitLevelChange(iChanged);
+        m_pAI->onUnitChangeLevel(iChanged);
     }
 }
 
@@ -451,13 +455,13 @@ void CUnit::onDie()
     }
 }
 
-void CUnit::onHpChange(float fChanged)
+void CUnit::onChangeHp(float fChanged)
 {
     triggerOnHpChange(fChanged);
     
     if (m_pAI)
     {
-        m_pAI->onUnitHpChange(fChanged);
+        m_pAI->onUnitChangeHp(fChanged);
     }
 }
 
@@ -567,6 +571,54 @@ void CUnit::onDestroyProjectile(CProjectile* pProjectile)
     }
 }
 
+void CUnit::onAddActiveSkill(CActiveSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitAddActiveSkill(pSkill);
+    }
+}
+
+void CUnit::onDelActiveSkill(CActiveSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitDelActiveSkill(pSkill);
+    }
+}
+
+void CUnit::onAddPassiveSkill(CPassiveSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitAddPassiveSkill(pSkill);
+    }
+}
+
+void CUnit::onDelPassiveSkill(CPassiveSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitDelPassiveSkill(pSkill);
+    }
+}
+
+void CUnit::onAddBuffSkill(CBuffSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitAddBuffSkill(pSkill);
+    }
+}
+
+void CUnit::onDelBuffSkill(CBuffSkill* pSkill)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitDelBuffSkill(pSkill);
+    }
+}
+
 void CUnit::onSkillReady(CSkill* pSkill)
 {
     pSkill->onUnitSkillReady();
@@ -574,6 +626,22 @@ void CUnit::onSkillReady(CSkill* pSkill)
     if (m_pAI)
     {
         m_pAI->onUnitSkillReady(pSkill);
+    }
+}
+
+void CUnit::onAddItem(int iIndex)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitAddItem(iIndex);
+    }
+}
+
+void CUnit::onDelItem(int iIndex)
+{
+    if (m_pAI)
+    {
+        m_pAI->onUnitDelItem(iIndex);
     }
 }
 
@@ -617,17 +685,6 @@ void CUnit::damagedMid(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerM
 {
     onDamaged(pAttack, pSource, dwTriggerMask);
 
-    M_VEC_FOREACH(pAttack->getAttackBuffs())
-    {
-        const CAttackBuff* pAb = &M_VEC_EACH;
-        // TODO: copy BUFF from TemplateSkills
-        CBuffSkill* pBuff = dynamic_cast<CBuffSkill*>(getWorld()->copySkill(pAb->getTemplateBuff()));
-        pBuff->setSrcUnit(pSource->getId());
-        pBuff->setLevel(pAb->getBuffLevel());
-        addBuffSkill(pBuff);
-        M_MAP_NEXT;
-    }
-
     //transformDamageByAttribute(pAttack);
     float fDamage = 0;
     for (int i = 0; i < CAttackValue::CONST_MAX_ATTACK_TYPE; i++)
@@ -636,6 +693,14 @@ void CUnit::damagedMid(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerM
     }
 
     damagedBot(fDamage, pSource, dwTriggerMask);
+    
+    M_VEC_FOREACH(pAttack->getAttackBuffs())
+    {
+        const CAttackBuff* pAb = &M_VEC_EACH;
+        // TODO: copy BUFF from TemplateSkills
+        addBuffSkill(pAb->getTemplateBuff(), pSource->getId(), pAb->getBuffLevel());
+        M_MAP_NEXT;
+    }
 }
 
 void CUnit::damagedBot(float fDamage, CUnit* pSource, uint32_t dwTriggerMask)
@@ -676,8 +741,22 @@ float CUnit::calcDamage(CAttackValue::ATTACK_TYPE eAttackType, float fAttackValu
 void CUnit::addActiveSkill(CActiveSkill* pSkill, bool bNotify)
 {
     m_mapActSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this, bNotify);  // 消息传递
+    pSkill->onAddToUnit(this);  // 消息传递
     addSkillToTriggers(pSkill);
+    
+    if (bNotify)
+    {
+        onAddActiveSkill(pSkill);
+    }
+}
+
+void CUnit::addActiveSkill(int id, int iLevel)
+{
+    CWorld* w = getWorld();
+    CActiveSkill* pSkill = NULL;
+    w->copySkill(id)->dcast(pSkill);
+    pSkill->setLevel(iLevel);
+    addActiveSkill(pSkill);
 }
 
 void CUnit::delActiveSkill(int id, bool bNotify)
@@ -690,7 +769,17 @@ void CUnit::delActiveSkill(int id, bool bNotify)
     
     CActiveSkill* pSkill = it->second;
     
-    pSkill->onDelFromUnit(bNotify);
+    if (bNotify)
+    {
+        onDelActiveSkill(pSkill);
+    }
+    
+    if (pSkill->isCoolingDown())
+    {
+        getWorld()->delSkillCD(id);
+    }
+    
+    pSkill->onDelFromUnit();
     delSkillFromTriggers(pSkill);
     
     m_mapActSkills.erase(it);
@@ -705,8 +794,22 @@ CActiveSkill* CUnit::getActiveSkill(int id)
 void CUnit::addPassiveSkill(CPassiveSkill* pSkill, bool bNotify)
 {
     m_mapPasSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this, bNotify);  // 消息传递
+    pSkill->onAddToUnit(this);  // 消息传递
     addSkillToTriggers(pSkill);
+    
+    if (bNotify)
+    {
+        onAddPassiveSkill(pSkill);
+    }
+}
+
+void CUnit::addPassiveSkill(int id, int iLevel)
+{
+    CWorld* w = getWorld();
+    CPassiveSkill* pSkill = NULL;
+    w->copySkill(id)->dcast(pSkill);
+    pSkill->setLevel(iLevel);
+    addPassiveSkill(pSkill);
 }
 
 void CUnit::delPassiveSkill(int id, bool bNotify)
@@ -719,7 +822,17 @@ void CUnit::delPassiveSkill(int id, bool bNotify)
     
     CPassiveSkill* pSkill = it->second;
     
-    pSkill->onDelFromUnit(bNotify);
+    if (bNotify)
+    {
+        onDelPassiveSkill(pSkill);
+    }
+    
+    if (pSkill->isCoolingDown())
+    {
+        getWorld()->delSkillCD(id);
+    }
+    
+    pSkill->onDelFromUnit();
     delSkillFromTriggers(pSkill);
     
     m_mapPasSkills.erase(it);
@@ -731,7 +844,7 @@ CPassiveSkill* CUnit::getPassiveSkill(int id)
     return m_mapPasSkills.getObject(id);
 }
 
-void CUnit::addBuffSkill(CBuffSkill* pSkill)
+void CUnit::addBuffSkill(CBuffSkill* pSkill, bool bNotify)
 {
     if (pSkill->isStackable() == false)
     {
@@ -739,13 +852,19 @@ void CUnit::addBuffSkill(CBuffSkill* pSkill)
         {
             CBuffSkill* pBuff = M_MAP_EACH;
             if (strcmp(pBuff->getRootId(), pSkill->getRootId()) == 0)
+#if 0
             {
-                pBuff->onDelFromUnit(false);
+                if (pBuff->isCoolingDown())
+                {
+                    getWorld()->delSkillCD(pBuff->getId());
+                }
+
+                pBuff->onDelFromUnit();
                 delSkillFromTriggers(pBuff);
                 pBuff->release();
                 
                 m_mapBuffSkills.addObject(pSkill);
-                pSkill->onAddToUnit(this, false);
+                pSkill->onAddToUnit(this);
                 addSkillToTriggers(pSkill);
                 
                 M_MAP_DEL_CUR_NEXT(m_mapBuffSkills);
@@ -755,14 +874,40 @@ void CUnit::addBuffSkill(CBuffSkill* pSkill)
             {
                 M_MAP_NEXT;
             }
+#else
+            {
+                pBuff->setSrcUnit(pSkill->getSrcUnit());
+                pBuff->setLevel(pSkill->getLevel());
+                pBuff->setName(pSkill->getName());
+                pBuff->setElapsed(0.0f);
+                return;
+            }
+            M_MAP_NEXT;
+#endif
         }
     }
+    
     m_mapBuffSkills.addObject(pSkill);
     pSkill->onAddToUnit(this);  // 消息传递
     addSkillToTriggers(pSkill);
+    
+    if (bNotify)
+    {
+        onAddBuffSkill(pSkill);
+    }
 }
 
-void CUnit::delBuffSkill(int id)
+void CUnit::addBuffSkill(int id, int iSrcUnit, int iLevel)
+{
+    CWorld* w = getWorld();
+    CBuffSkill* pSkill = NULL;
+    w->copySkill(id)->dcast(pSkill);
+    pSkill->setSrcUnit(iSrcUnit);
+    pSkill->setLevel(iLevel);
+    addBuffSkill(pSkill);
+}
+
+void CUnit::delBuffSkill(int id, bool bNotify)
 {
     auto it = m_mapBuffSkills.find(id);
     if (it == m_mapBuffSkills.end())
@@ -771,6 +916,16 @@ void CUnit::delBuffSkill(int id)
     }
     
     CBuffSkill* pSkill = it->second;
+    
+    if (bNotify)
+    {
+        onDelBuffSkill(pSkill);
+    }
+    
+    if (pSkill->isCoolingDown())
+    {
+        getWorld()->delSkillCD(id);
+    }
     
     pSkill->onDelFromUnit();
     delSkillFromTriggers(pSkill);
@@ -1152,6 +1307,10 @@ void CUnit::suspend()
 {
     ++m_iSuspendRef;
     // TODO: stop actions
+    if (m_iSuspendRef == 1)
+    {
+        LOG("%s不能动了", getName());
+    }
 }
 
 void CUnit::resume()
@@ -1165,12 +1324,13 @@ void CUnit::resume()
     if (m_iSuspendRef == 0)
     {
         // TODO: resume
+        LOG("%s能动了", getName());
     }
 }
 
 int CUnit::castSkill(int iActiveSkillId)
 {
-    if (iActiveSkillId == 0)
+    if (isSuspended() || isDead() || iActiveSkillId == 0)
     {
         return -1;
     }
@@ -1181,7 +1341,7 @@ int CUnit::castSkill(int iActiveSkillId)
         return -1;
     }
     
-    if (getCastTarget().getTargetType() != pSkill->getCastTargetType())
+    if (pSkill->getCastTargetType() != CCommandTarget::kNoTarget && getCastTarget().getTargetType() != pSkill->getCastTargetType())
     {
         return -1;
     }
@@ -1191,7 +1351,8 @@ int CUnit::castSkill(int iActiveSkillId)
     {
         return -1;
     }
-        
+    //LOG("%s%s%s..", getName(), getAttackSkillId() == pSkill->getId() ? "的" : "施放了", pSkill->getName());
+    
     return 0;
 }
 
@@ -1212,28 +1373,36 @@ bool CUnit::addItem(CItem* pItem)
         // 直接使用
         assert(pItem->getItemType() == CItem::kConsumable);
         pItem->onAddToNewSlot(this);
-        assert(pItem->getActiveSkill() != NULL);
+        assert(!pItem->getActiveSkills().empty());
         
-        return pItem->use();
+        pItem->use();
+        pItem->onDelFromSlot();
+        return true;
     }
     
     int iFirstEmpty = -1;
     for (int i = 0; i < (int)m_vecItems.size(); ++i)
     {
         CItem* pSlot = m_vecItems[i];
-        if (pSlot == NULL && iFirstEmpty == -1)
+        if (pSlot == NULL)
         {
             // 找到第一个空位
-            iFirstEmpty = i;
+            if (iFirstEmpty == -1)
+            {
+                iFirstEmpty = i;
+            }
+            continue;
         }
         
         if (strcmp(pSlot->getRootId(), pItem->getRootId()) == 0)
         {
             // 找到堆叠组
-            if (pSlot->getStackCount() < pSlot->getMaxStackSize())
+            int iFree = pSlot->getFreeStackSize();
+            if (iFree > 0)
             {
                 // 可以继续堆叠
-                pSlot->addStackCount();
+                unsigned int uInc = pSlot->incStackCount(pItem->getStackCount());
+                pItem->decStatckCount(uInc);
                 return true;
             }
             else
@@ -1253,6 +1422,8 @@ bool CUnit::addItem(CItem* pItem)
     m_vecItems.setObject(iFirstEmpty, pItem);
     pItem->onAddToNewSlot(this);  // 消息传递
     
+    onAddItem(iFirstEmpty);
+    
     return true;
 }
 
@@ -1267,6 +1438,8 @@ void CUnit::delItem(int iIndex)
     {
         return;
     }
+    
+    onDelItem(iIndex);
     
     m_vecItems[iIndex]->onDelFromSlot();
     m_vecItems.delObject(iIndex);
@@ -1284,19 +1457,26 @@ CItem* CUnit::getItem(int iIndex)
 
 int CUnit::useItem(int iIndex)
 {
-    if (iIndex < 0 || iIndex >= (int)m_vecItems.size())
+    if (isSuspended() || isDead() || iIndex < 0 || iIndex >= (int)m_vecItems.size())
     {
         return -1;
     }
     
-    if (m_vecItems[iIndex] == NULL)
+    CItem* pItem = m_vecItems[iIndex];
+    if (pItem == NULL)
     {
         return -1;
     }
     
-    if (m_vecItems[iIndex]->use() == false)
+    if (pItem->use() == false)
     {
         return -1;
+    }
+    //LOG("%s使用了%s", getName(), pItem->getName());
+    
+    if (pItem->getStackCount() == 0)
+    {
+        delItem(iIndex);
     }
     
     return 0;
@@ -1672,6 +1852,11 @@ void CWorld::addSkillCD(CSkill* pSkill)
     m_mapSkillsCD.addObject(pSkill);
 }
 
+void CWorld::delSkillCD(int id)
+{
+    m_mapSkillsCD.delObject(id);
+}
+
 bool CWorld::isSkillCD(int id) const
 {
     return m_mapSkillsCD.find(id) != m_mapSkillsCD.end();
@@ -1756,6 +1941,7 @@ void CWorld::onTick(float dt)
         {
             // 如果技能已经就绪，从中删除
             skillReady(pSkill);
+            pSkill->release();
             
             M_MAP_DEL_CUR_NEXT(m_mapSkillsCD);
         }
@@ -1813,5 +1999,5 @@ CSkill* CWorld::copySkill(int id) const
         return NULL;
     }
     
-    return dynamic_cast<CSkill*>(pSkill->copy());  // 即时转换失败也不需要释放，因为有CAutoReleasePool
+    return pSkill->copy()->dcast(pSkill);  // 即时转换失败也不需要释放，因为有CAutoReleasePool
 }

@@ -27,7 +27,7 @@ public:
     
 protected:
     int m_iUnitId;
-    int m_iUnitId2;
+    int m_iHero;
 };
 
 class CMyApp : public CLogicApplication

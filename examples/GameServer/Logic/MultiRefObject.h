@@ -22,8 +22,12 @@ public:
     
     M_SYNTHESIZE_READONLY(int, m_iRefCount, RefCount);
     M_SYNTHESIZE_STR(DbgClassName);
+    virtual const char* getDbgTag() const;
     
     int getId() const;
+    
+    template <typename PTYPE>
+    PTYPE dcast(PTYPE& rTo);
     
 private:
     void tryRelease();
@@ -56,8 +60,8 @@ public:
     M_SYNTHESIZE_READONLY_PASS_BY_REF(SET_OBJS, m_setObjs, Objects);
     void addObject(CMultiRefObject* pObject);
     void delObject(CMultiRefObject* pObject);
-    void printDbgInfo();
-    
+    void printDbgInfo(const char* pFile, int iLine);
+#define OBJS_INFO CDbgMultiRefObjectManager::sharedDbgMultiRefObjectManager()->printDbgInfo(__FILE__, __LINE__)
     M_SINGLETON(DbgMultiRefObjectManager);
 };
 
@@ -95,6 +99,15 @@ public:
 
 
 // ----------- Inline Implementation--------------
+
+// CMultiRefObject
+template <typename PTYPE>
+inline PTYPE CMultiRefObject::dcast(PTYPE& rTo)
+{
+    rTo = dynamic_cast<PTYPE>(this);
+    return rTo;
+}
+
 // CMultiRefMap
 template <typename MULTIREF_ID_TYPE_PTR>
 inline CMultiRefMap<MULTIREF_ID_TYPE_PTR>::~CMultiRefMap()
