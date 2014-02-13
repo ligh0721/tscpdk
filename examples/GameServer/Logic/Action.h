@@ -52,7 +52,6 @@ protected:
 };
 
 
-typedef void (CMultiRefObject::*FUNC_CALLFUNC_ND)(CUnit*, void*);
 class CCallFunc : public CFiniteTimeAction
 {
 public:

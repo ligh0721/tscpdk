@@ -224,6 +224,17 @@ public:
     M_SYNTHESIZE_PASS_BY_REF(CExtraCoeff, m_oExAttackValue, ExAttackValue);
 };
 
+class CVampirePas : public CPassiveSkill
+{
+public:
+    CVampirePas(const char* pRootId, const char* pName, float fPercentConversion);
+    virtual CMultiRefObject* copy() const;
+    
+    virtual void onUnitDamageTargetDone(float fDamage, CUnit* pTarget);
+
+    M_SYNTHESIZE(float, m_fPercentConversion, PercentConversion);
+};
+
 class CStunBuff : public CBuffSkill
 {
 public:

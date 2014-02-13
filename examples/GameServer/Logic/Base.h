@@ -41,7 +41,11 @@ public:
     static int nextKey();
 };
 
+class CMultiRefObject;
+class CUnit;
 
+typedef void (CMultiRefObject::*FUNC_CALLFUNC_ND)(CUnit*, void*);
+typedef void (CMultiRefObject::*FUNC_CALLFUNC_N)(CUnit*);
 
 
 #endif	/* __BASE_H__ */

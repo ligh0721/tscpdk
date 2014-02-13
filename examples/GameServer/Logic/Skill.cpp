@@ -627,6 +627,29 @@ CAttackData* CAttackBuffMakerPas::onUnitAttackTarget(CAttackData* pAttack, CUnit
     
     return pAttack;
 }
+
+// CVampirePas
+CVampirePas::CVampirePas(const char* pRootId, const char* pName, float fPercentConversion)
+: CPassiveSkill(pRootId, pName)
+, m_fPercentConversion(fPercentConversion)
+{
+    setDbgClassName("CVampirePas");
+    setTriggerFlags(CUnit::kDamageTargetDoneTrigger);
+}
+
+CMultiRefObject* CVampirePas::copy() const
+{
+    return new CVampirePas(getRootId(), getName(), getPercentConversion());
+}
+
+void CVampirePas::onUnitDamageTargetDone(float fDamage, CUnit* pTarget)
+{
+    CUnit* o = getOwner();
+    float fDtHp = fDamage * getPercentConversion();
+    o->setHp(o->getHp() + fDtHp);
+    LOG("%s恢复%d点HP", o->getName(), (int)round(fDtHp));
+}
+
 // CStunBuff
 CStunBuff::CStunBuff(const char* pRootId, const char* pName, float fDuration, bool bStackable)
 : CBuffSkill(pRootId, pName, fDuration, bStackable)

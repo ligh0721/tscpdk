@@ -9,9 +9,9 @@
 
 #include "CommInc.h"
 #include "GameServer.h"
-#include "Logic/Action.h"
-#include "Logic/Skill.h"
-#include "Logic/Item.h"
+#include "Action.h"
+#include "Skill.h"
+#include "Item.h"
 
 
 USING_NS_TSCPDK;
@@ -72,7 +72,7 @@ public:
     virtual void onUnitTick(float dt)
     {
         CUnit* u = getNotifyUnit();
-        
+
         if (u->getHp() / (u->getMaxHp() + FLT_EPSILON) < 0.5)
         {
             if (u->castSkill(m_iTreat) == false)
@@ -81,7 +81,7 @@ public:
             else if (u->useItem(m_iRedElixir) == false)
             {
             }
-            
+
         }
 
         if (m_iTargetId != 0)
@@ -98,7 +98,7 @@ public:
             m_iTreat = pSkill->getId();
         }
     }
-    
+
     virtual void onUnitAddItem(int iIndex)
     {
         CUnit* u = getNotifyUnit();
@@ -107,7 +107,7 @@ public:
         {
             return;
         }
-        
+
         if (strcmp(pItem->getName(), "HP恢复药剂") == 0)
         {
             m_iRedElixir = iIndex;
@@ -148,7 +148,7 @@ CMyWorld::CMyWorld()
     u->addActiveSkill(atk);
     u->setAI(CHeroAI());
     this->addUnit(u);
-    
+
     pSkill = new CHpChangeBuff("HP+10%/0.5s|2s",
                                "恢复",
                                2.0,
@@ -157,7 +157,7 @@ CMyWorld::CMyWorld()
                                0.10,
                                true);
     id = addTemplateSkill(pSkill);
-    
+
     pSkill = new CBuffMakerAct("Treat.[HP+10%/0.5s|2s]",
                                "恢复术",
                                30.0,
@@ -166,7 +166,7 @@ CMyWorld::CMyWorld()
                                CUnitForce::kSelf);
     id = addTemplateSkill(pSkill);
     u->addActiveSkill(id);
-    
+
 
     // hero init
     u = new CUnit("CUnit");
@@ -203,13 +203,13 @@ CMyWorld::CMyWorld()
                           CUnitForce::kEnemy);
     id = addTemplateSkill(pSkill);
     u->addPassiveSkill(id);
-    
+
     pSkill = new CStunBuff("Stun3s",
                            "昏迷",
                            3.0,
                            false);
     id = addTemplateSkill(pSkill);
-    
+
     pSkill = new CAttackBuffMakerPas("AttackBuffMaker.[Stun3s]",
                                      "重击",
                                      0.2f,
@@ -218,11 +218,11 @@ CMyWorld::CMyWorld()
                                      CExtraCoeff(1.0, 50.0));
     id = addTemplateSkill(pSkill);
     u->addPassiveSkill(id);
-    
+
     pSkill = new CDoubleAttackBuff("DoubleAttack",
                                    "连击");
     id = addTemplateSkill(pSkill);
-    
+
     pSkill = new CAttackBuffMakerPas("AttackBuffMaker.[DoubleAttack]",
                                      "连击",
                                      0.3f,
@@ -231,7 +231,15 @@ CMyWorld::CMyWorld()
                                      CExtraCoeff(0.5, 0.0));
     id = addTemplateSkill(pSkill);
     u->addPassiveSkill(id);
+
+    pSkill = new CVampirePas("Vampire",
+                             "20%吸血",
+                             0.20f);
+    id = addTemplateSkill(pSkill);
+    u->addPassiveSkill(id);
     
+    
+
     // Add Items
     u->setPackageSize(10);
 
@@ -256,7 +264,7 @@ CMyWorld::CMyWorld()
     pItem = new CItem("BleedSword", "重伤剑刃", CItem::kNormal, 1);
     pItem->addPassiveSkill(id);
     u->addItem(pItem);
-    
+
     pSkill = new CHpChangeBuff("HP+10/0.5s|10s",
                                "HP恢复",
                                10.0,
@@ -273,19 +281,19 @@ CMyWorld::CMyWorld()
                                CCommandTarget::kNoTarget,
                                CUnitForce::kSelf);
     id = addTemplateSkill(pSkill);
-    
+
     pItem = new CItem("RedElixir", "HP恢复药剂", CItem::kConsumable, 1000);
     pItem->addActiveSkill(id);
     pItem->setStackCount(2);
     u->addItem(pItem);
-    
+
     OBJS_INFO;
-    
+
     //u->setRevivable(true);
     u->setCastTarget(CCommandTarget(m_iUnitId));
     u->castSkill(u->getAttackSkillId());
     //atk->setExAttackSpeed(CExtraCoeff(1.0, 0.0));
-    
+
 }
 
 void CMyWorld::onTick(float dt)
