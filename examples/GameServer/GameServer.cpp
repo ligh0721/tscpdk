@@ -331,7 +331,7 @@ bool CMyApp::applicationDidFinishLaunching()
     m_pG = new CMyWorld();
     m_pG->retain();
 
-    setBursting(true);
+    setBursting(false);
     return true;
 }
 
