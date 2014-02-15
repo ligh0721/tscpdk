@@ -8,9 +8,6 @@
 #ifndef __APPLICATION_H__
 #define	__APPLICATION_H__
 
-#include "Action.h"
-
-
 
 class CLogicApplication
 {
@@ -30,7 +27,8 @@ public:
 	int run();
 
 	static CLogicApplication* sharedApplication();
-    static long getCurMSec();
+    virtual long getCurMSec() = 0;
+    virtual void SleepForMSec(unsigned int dwMSec) = 0;
     
     virtual bool applicationDidFinishLaunching();
     virtual void applicationTick(float fDt);

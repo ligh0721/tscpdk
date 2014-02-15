@@ -35,6 +35,8 @@ class CMyApp : public CLogicApplication
 public:
     virtual bool applicationDidFinishLaunching();
     virtual void applicationTick(float fDt);
+    virtual long getCurMSec();
+    virtual void SleepForMSec(unsigned int dwMSec);
     
 protected:
     CMyWorld* m_pG;

@@ -340,6 +340,18 @@ void CMyApp::applicationTick(float dt)
     m_pG->onTick(dt);
 }
 
+long CMyApp::getCurMSec()
+{
+	struct timeval stCurrentTime;
+	gettimeofday(&stCurrentTime, NULL);
+	return stCurrentTime.tv_sec * 1000 + stCurrentTime.tv_usec * 0.001; // millseconds
+}
+
+void CMyApp::SleepForMSec(unsigned int dwMSec)
+{
+    ::SleepForMSec(dwMSec);
+}
+
 int main(int argc, char* argv[])
 {
     CMyApp oApp;

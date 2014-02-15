@@ -8,9 +8,6 @@
 #include "CommInc.h"
 #include "Application.h"
 #include "MultiRefObject.h"
-#include <tscpdk/TSCPDK.h>
-
-USING_NS_TSCPDK;
 
 
 // CLogicApplication
@@ -90,13 +87,6 @@ bool CLogicApplication::applicationDidFinishLaunching()
 
 void CLogicApplication::applicationTick(float fDt)
 {
-}
-
-long CLogicApplication::getCurMSec()
-{
-	struct timeval stCurrentTime;
-	gettimeofday(&stCurrentTime, NULL);
-	return stCurrentTime.tv_sec * 1000 + stCurrentTime.tv_usec * 0.001; // millseconds
 }
 
 
