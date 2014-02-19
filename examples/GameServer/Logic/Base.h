@@ -2,7 +2,7 @@
  * File:   Base.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ9æ—¥, ä¸Šåˆ12:42
+ * Created on 2013Äê12ÔÂ9ÈÕ, ÉÏÎç12:42
  */
 
 #ifndef __BASE_H__
@@ -40,12 +40,6 @@ class CKeyGen
 public:
     static int nextKey();
 };
-
-class CMultiRefObject;
-class CUnit;
-
-typedef void (CMultiRefObject::*FUNC_CALLFUNC_ND)(CUnit*, void*);
-typedef void (CMultiRefObject::*FUNC_CALLFUNC_N)(CUnit*);
 
 
 #endif	/* __BASE_H__ */

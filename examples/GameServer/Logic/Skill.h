@@ -2,7 +2,7 @@
  * File:   Skill.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ11:45
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç11:45
  */
 
 #ifndef __SKILL_H__
@@ -42,14 +42,14 @@ public:
     virtual void setInterval(float fInterval);
     M_SYNTHESIZE(float, m_fIntervalElapsed, IntervalElapsed);
     
-    // æŠ€èƒ½æŒæœ‰è€…äº‹ä»¶å“åº”ï¼Œåªè¦†è¢«æ³¨å†Œçš„è§¦å‘å™¨ç›¸åº”çš„äº‹ä»¶å‡½æ•°å³å¯
+    // ¼¼ÄÜ³ÖÓĞÕßÊÂ¼şÏìÓ¦£¬Ö»¸²±»×¢²áµÄ´¥·¢Æ÷ÏàÓ¦µÄÊÂ¼şº¯Êı¼´¿É
     // @override
     virtual void onUnitAddSkill();
     virtual void onUnitDelSkill();
     virtual void onUnitSkillReady();
     virtual void onUnitRevive();
     virtual void onUnitDie();
-    virtual void onUnitHpChange(float fChanged);
+    virtual void onUnitChangeHp(float fChanged);
     virtual void onUnitTick(float dt);
     virtual void onUnitInterval();
     virtual CAttackData* onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget);
@@ -61,7 +61,7 @@ public:
     virtual void onUnitDestroyProjectile(CProjectile* pProjectile);
     
 public:
-    // æ¥è‡ªCUnitå†…éƒ¨è°ƒç”¨ï¼ŒbNotifyä¸ºfalseæ—¶ï¼Œä¸éœ€è¦é€šçŸ¥onUnitAddSkillï¼Œé€šå¸¸è¿™ç§æƒ…å†µåœ¨Buffè¢«è¦†ç›–çš„æ—¶å€™å‘ç”Ÿ
+    // À´×ÔCUnitÄÚ²¿µ÷ÓÃ£¬bNotifyÎªfalseÊ±£¬²»ĞèÒªÍ¨ÖªonUnitAddSkill£¬Í¨³£ÕâÖÖÇé¿öÔÚBuff±»¸²¸ÇµÄÊ±ºò·¢Éú
     void onAddToUnit(CUnit* pOwner);
     void onDelFromUnit();
     
@@ -81,13 +81,13 @@ public:
     virtual bool checkConditions();
     virtual void onUnitCastSkill();
     
-    // é™å®šæ–½æ³•å‚æ•°
+    // ÏŞ¶¨Ê©·¨²ÎÊı
     M_SYNTHESIZE(CCommandTarget::TARGET_TYPE, m_eCastTargetType, CastTargetType);
     M_SYNTHESIZE(uint32_t, m_dwEffectiveTypeFlags, EffectiveTypeFlags)
-    M_SYNTHESIZE(float, m_fCastRange, CastRange);  // æ–½æ³•è·ç¦»
-    M_SYNTHESIZE(float, m_fCastTargetRadius, CastTargetRadius);  // ä½œç”¨èŒƒå›´
+    M_SYNTHESIZE(float, m_fCastRange, CastRange);  // Ê©·¨¾àÀë
+    M_SYNTHESIZE(float, m_fCastTargetRadius, CastTargetRadius);  // ×÷ÓÃ·¶Î§
     
-    // ä¼ é€’æ–½æ³•å‚æ•°ï¼Œå¹¶å¯èƒ½åœ¨æŠ€èƒ½åç»­æŒç»­ä¸­ä½¿ç”¨
+    // ´«µİÊ©·¨²ÎÊı£¬²¢¿ÉÄÜÔÚ¼¼ÄÜºóĞø³ÖĞøÖĞÊ¹ÓÃ
     //M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oCastTargetPoint, CastTargetPoint);
     //M_SYNTHESIZE(int, m_iCastTargetUnit, CastTargetUnit);
     
@@ -121,7 +121,7 @@ public:
 
 /////////////////////// ActiveSkills ///////////////////////
 
-// æ”»å‡»ï¼Œé»˜è®¤ä»¥å•ä½ä½œä¸ºç›®æ ‡
+// ¹¥»÷£¬Ä¬ÈÏÒÔµ¥Î»×÷ÎªÄ¿±ê
 class CAttackAct : public CActiveSkill
 {
 public:
@@ -176,7 +176,7 @@ protected:
     
 };
 
-// ä¸»åŠ¨å‹BUFFé™„åŠ å™¨ï¼Œæ”¯æŒæ‰€æœ‰ç›®æ ‡ç§ç±»
+// Ö÷¶¯ĞÍBUFF¸½¼ÓÆ÷£¬Ö§³ÖËùÓĞÄ¿±êÖÖÀà
 class CBuffMakerAct : public CActiveSkill
 {
 public:
@@ -194,7 +194,7 @@ protected:
 
 /////////////////////// PassiveSkills & BuffSkills ///////////////////////
 
-// å…‰ç¯ï¼ŒèŒƒå›´å‹BUFFé™„åŠ å™¨
+// ¹â»·£¬·¶Î§ĞÍBUFF¸½¼ÓÆ÷
 class CAuraPas : public CPassiveSkill
 {
 public:
@@ -209,7 +209,7 @@ public:
     M_SYNTHESIZE(uint32_t, m_dwEffectiveTypeFlags, TargetFlags);
 };
 
-// æ”»å‡»æ•°æ®å˜æ›´ï¼Œæ”»å‡»æ—¶æœºä¼šå‹BUFFé™„åŠ å™¨
+// ¹¥»÷Êı¾İ±ä¸ü£¬¹¥»÷Ê±»ú»áĞÍBUFF¸½¼ÓÆ÷
 class CAttackBuffMakerPas : public CPassiveSkill
 {
 public:

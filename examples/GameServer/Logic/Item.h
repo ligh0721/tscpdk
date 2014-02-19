@@ -2,7 +2,7 @@
  * File:   Item.h
  * Author: thunderliu
  *
- * Created on 2014å¹´2æœˆ11æ—¥, ä¸Šåˆ1:08
+ * Created on 2014Äê2ÔÂ11ÈÕ, ÉÏÎç1:08
  */
 
 #ifndef ITEM_H
@@ -34,7 +34,7 @@ public:
     };
     
 public:
-    // uMaxStackSizeå¯ä»¥å–INFINITEï¼Œæ— é™å †å ï¼›eItemTypeä¸ºkConsumableæ—¶ï¼ŒuMaxStackSizeå¯ä»¥å–0ï¼Œä»£è¡¨æ‹¾èµ·ç«‹å³æ¶ˆè€—
+    // uMaxStackSize¿ÉÒÔÈ¡INFINITE£¬ÎŞÏŞ¶Ñµş£»eItemTypeÎªkConsumableÊ±£¬uMaxStackSize¿ÉÒÔÈ¡0£¬´ú±íÊ°ÆğÁ¢¼´ÏûºÄ
     CItem(const char* pRootId, const char* pName, ITEM_TYPE eItemType, unsigned int uMaxStackSize);
     virtual ~CItem();
 
@@ -70,12 +70,12 @@ public:
     virtual void onUnitAddItem();
     virtual void onUnitDelItem();
     
-    // è°ƒç”¨å®Œä¹‹å
+    // µ÷ÓÃÍêÖ®ºó
     virtual bool use();
     virtual bool checkConditions();
     virtual void onUnitUseItem();
     
-    // å¤–éƒ¨è°ƒç”¨
+    // Íâ²¿µ÷ÓÃ
     void onAddToNewSlot(CUnit* pOwner);
     void onDelFromSlot();
     

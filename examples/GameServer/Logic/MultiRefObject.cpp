@@ -2,7 +2,7 @@
  * File:   MutiRefObject.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ11:37
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç11:37
  */
 
 #include "CommInc.h"

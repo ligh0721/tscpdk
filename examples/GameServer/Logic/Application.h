@@ -2,7 +2,7 @@
  * File:   Application.h
  * Author: thunderliu
  *
- * Created on 2014å¹´2æœˆ4æ—¥, ä¸Šåˆ3:00
+ * Created on 2014Äê2ÔÂ4ÈÕ, ÉÏÎç3:00
  */
 
 #ifndef __APPLICATION_H__

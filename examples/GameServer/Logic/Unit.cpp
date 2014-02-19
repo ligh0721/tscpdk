@@ -2,7 +2,7 @@
  * File:   Unit.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:55
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:55
  */
 
 #include "CommInc.h"
@@ -11,16 +11,16 @@
 #include "Action.h"
 #include "Application.h"
 #include "Item.h"
-
+#include "Draw.h"
 
 
 // CAttackValue
 const char* CAttackValue::CONST_ARR_NAME[CONST_MAX_ATTACK_TYPE][CONST_MAX_NAME_INDEX] = {
-#if 0
-    { "kPhysical",  "ç‰©ç†" },
-    { "kMagical",   "é­”æ³•" },
-    { "kSiege",     "æ”»åŸ" },
-    { "kHoly",      "ç¥åœ£" }
+#if 1
+    { "kPhysical",  "ÎïÀí" },
+    { "kMagical",   "Ä§·¨" },
+    { "kSiege",     "¹¥³Ç" },
+    { "kHoly",      "ÉñÊ¥" }
 #else
     { "kPhysical",  "kPhysical" },
     { "kMagical",   "kMagical" },
@@ -89,13 +89,13 @@ const CAttackValue& CAttackValue::operator=(const CAttackValue& roAttackValue)
 }
 
 const char* CArmorValue::CONST_ARR_NAME[CONST_MAX_ARMOR_TYPE][CONST_MAX_NAME_INDEX] = {
-#if 0
-    { "Normal",     "æ™®é€š" },
-    { "Heavy",      "é‡è£…" },
-    { "Crystal",    "æ°´æ™¶" },
-    { "Wall",       "åŸå¢™" },
-    { "Hero",       "è‹±é›„" },
-    { "Holy",       "ç¥åœ£" }
+#if 1
+    { "Normal",     "ÆÕÍ¨" },
+    { "Heavy",      "ÖØ×°" },
+    { "Crystal",    "Ë®¾§" },
+    { "Wall",       "³ÇÇ½" },
+    { "Hero",       "Ó¢ĞÛ" },
+    { "Holy",       "ÉñÊ¥" }
 #else
     { "Normal",     "Normal" },
     { "Heavy",      "Heavy" },
@@ -167,25 +167,25 @@ const CArmorValue& CArmorValue::operator=(const CArmorValue& roArmorValue)
 }
 
 /*
- 0.00    æ— 
- 0.25    å¾®å¼±
- 0.50    å¼±
- 0.75    è¾ƒå¼±
- 1.00    æ­£å¸¸
- 1.25    è¾ƒå¼º
- 1.50    å¼º
- 1.75    è¶…å¼º
- 2.00    ç“¦è§£
+ 0.00    ÎŞ
+ 0.25    Î¢Èõ
+ 0.50    Èõ
+ 0.75    ½ÏÈõ
+ 1.00    Õı³£
+ 1.25    ½ÏÇ¿
+ 1.50    Ç¿
+ 1.75    ³¬Ç¿
+ 2.00    Íß½â
  */
 
 float g_afAttackArmorTable[CArmorValue::CONST_MAX_ARMOR_TYPE][CAttackValue::CONST_MAX_ATTACK_TYPE] = {
-    //           ç‰©ç†æ”»å‡» é­”æ³•æ”»å‡» æ”»åŸæ”»å‡» ç¥åœ£æ”»å‡»
-    /*æ™®é€šæŠ¤ç”²*/ { 1.00,   1.00,   1.00,   1.00 },
-    /*é‡è£…æŠ¤ç”²*/ { 0.50,   1.50,   0.75,   1.00 },
-    /*æ°´æ™¶æŠ¤ç”²*/ { 1.25,   0.50,   1.50,   1.00 },
-    /*åŸå¢™æŠ¤ç”²*/ { 0.50,   0.50,   1.50,   1.00 },
-    /*è‹±é›„æŠ¤ç”²*/ { 0.75,   0.75,   0.75,   1.00 },
-    /*ç¥åœ£æŠ¤ç”²*/ { 0.25,   0.25,   0.25,   1.00 }
+    //           ÎïÀí¹¥»÷ Ä§·¨¹¥»÷ ¹¥³Ç¹¥»÷ ÉñÊ¥¹¥»÷
+    /*ÆÕÍ¨»¤¼×*/ { 1.00,   1.00,   1.00,   1.00 },
+    /*ÖØ×°»¤¼×*/ { 0.50,   1.50,   0.75,   1.00 },
+    /*Ë®¾§»¤¼×*/ { 1.25,   0.50,   1.50,   1.00 },
+    /*³ÇÇ½»¤¼×*/ { 0.50,   0.50,   1.50,   1.00 },
+    /*Ó¢ĞÛ»¤¼×*/ { 0.75,   0.75,   0.75,   1.00 },
+    /*ÉñÊ¥»¤¼×*/ { 0.25,   0.25,   0.25,   1.00 }
 };
 
 // CAttackBuff
@@ -342,9 +342,7 @@ CUnit::CUnit(const char* pRootId)
 , m_fBaseArmorValue(0.0f)
 , m_bRevivable(false)
 , m_dwDoingFlags(0)
-, m_fBaseMoveSpeed(CONST_MIN_MOVE_SPEED)
-, m_bFixed(false)
-, m_bFlip(false)
+, m_pDraw(NULL)
 , m_eSpecies(kUnknown)
 {
     setDbgClassName("CUnit");
@@ -353,6 +351,7 @@ CUnit::CUnit(const char* pRootId)
 CUnit::~CUnit()
 {
     delAI();
+    setDraw(NULL);
 }
 
 const char* CUnit::getDbgTag() const
@@ -367,7 +366,7 @@ CUnit* CUnit::getUnit(int id)
 
 void CUnit::skillCD(CSkill* pSkill)
 {
-    LOG("%sçš„%sæŠ€èƒ½å¼€å§‹å†·å´(%.1fs)", getName(), pSkill->getName(), pSkill->getCoolDown());
+    LOG("%sµÄ%s¼¼ÄÜ¿ªÊ¼ÀäÈ´(%.1fs)", getName(), pSkill->getName(), pSkill->getCoolDown());
     getWorld()->addSkillCD(pSkill);
 }
 
@@ -465,12 +464,18 @@ void CUnit::onChangeHp(float fChanged)
     }
 }
 
-void CUnit::onTick(float dt)
+void CUnit::step(float dt)
 {
     m_oActMgr.onTick(dt);
     
-    triggerOnTick(dt);
     updateBuffSkillElapsed(dt);
+    
+    onTick(dt);
+}
+
+void CUnit::onTick(float dt)
+{
+    triggerOnTick(dt);
     
     if (m_pAI)
     {
@@ -538,8 +543,8 @@ void CUnit::onDamagedDone(float fDamage, CUnit* pSource, uint32_t dwTriggerMask)
     }
     triggerOnDamagedDone(fDamage, pSource);
     
-    LOG("%så—åˆ°%dç‚¹ä¼¤å®³", getName(), (int)round(fDamage));
-    LOG("%s HP: %d/%d\n", getName(), (int)round(getHp()), (int)round(getMaxHp()));
+    LOG("%sÊÜµ½%dµãÉËº¦", getName(), toInt(fDamage));
+    LOG("%s HP: %d/%d\n", getName(), toInt(getHp()), toInt(getMaxHp()));
     
     if (m_pAI)
     {
@@ -741,7 +746,7 @@ float CUnit::calcDamage(CAttackValue::ATTACK_TYPE eAttackType, float fAttackValu
 void CUnit::addActiveSkill(CActiveSkill* pSkill, bool bNotify)
 {
     m_mapActSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this);  // æ¶ˆæ¯ä¼ é€’
+    pSkill->onAddToUnit(this);  // ÏûÏ¢´«µİ
     addSkillToTriggers(pSkill);
     
     if (bNotify)
@@ -794,7 +799,7 @@ CActiveSkill* CUnit::getActiveSkill(int id)
 void CUnit::addPassiveSkill(CPassiveSkill* pSkill, bool bNotify)
 {
     m_mapPasSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this);  // æ¶ˆæ¯ä¼ é€’
+    pSkill->onAddToUnit(this);  // ÏûÏ¢´«µİ
     addSkillToTriggers(pSkill);
     
     if (bNotify)
@@ -888,7 +893,7 @@ void CUnit::addBuffSkill(CBuffSkill* pSkill, bool bNotify)
     }
     
     m_mapBuffSkills.addObject(pSkill);
-    pSkill->onAddToUnit(this);  // æ¶ˆæ¯ä¼ é€’
+    pSkill->onAddToUnit(this);  // ÏûÏ¢´«µİ
     addSkillToTriggers(pSkill);
     
     if (bNotify)
@@ -1176,7 +1181,7 @@ void CUnit::triggerOnHpChange(float fChanged)
     M_MAP_FOREACH(m_mapOnHpChangeTriggerSkills)
     {
         CSkill* pSkill = M_MAP_EACH;
-        pSkill->onUnitHpChange(fChanged);
+        pSkill->onUnitChangeHp(fChanged);
         M_MAP_NEXT;
     }
     endTrigger();
@@ -1309,7 +1314,7 @@ void CUnit::suspend()
     // TODO: stop actions
     if (m_iSuspendRef == 1)
     {
-        LOG("%sä¸èƒ½åŠ¨äº†", getName());
+        LOG("%s²»ÄÜ¶¯ÁË", getName());
     }
 }
 
@@ -1324,7 +1329,7 @@ void CUnit::resume()
     if (m_iSuspendRef == 0)
     {
         // TODO: resume
-        LOG("%sèƒ½åŠ¨äº†", getName());
+        LOG("%sÄÜ¶¯ÁË", getName());
     }
 }
 
@@ -1346,12 +1351,12 @@ int CUnit::castSkill(int iActiveSkillId)
         return -1;
     }
     
-    // æ¨¡æ‹Ÿï¼Œç®€åŒ–é€»è¾‘
+    // Ä£Äâ£¬¼ò»¯Âß¼­
     if (pSkill->cast() == false)
     {
         return -1;
     }
-    //LOG("%s%s%s..", getName(), getAttackSkillId() == pSkill->getId() ? "çš„" : "æ–½æ”¾äº†", pSkill->getName());
+    //LOG("%s%s%s..", getName(), getAttackSkillId() == pSkill->getId() ? "µÄ" : "Ê©·ÅÁË", pSkill->getName());
     
     return 0;
 }
@@ -1370,7 +1375,7 @@ bool CUnit::addItem(CItem* pItem)
 {
     if (pItem->getMaxStackSize() == 0)
     {
-        // ç›´æ¥ä½¿ç”¨
+        // Ö±½ÓÊ¹ÓÃ
         assert(pItem->getItemType() == CItem::kConsumable);
         pItem->onAddToNewSlot(this);
         assert(!pItem->getActiveSkills().empty());
@@ -1386,7 +1391,7 @@ bool CUnit::addItem(CItem* pItem)
         CItem* pSlot = m_vecItems[i];
         if (pSlot == NULL)
         {
-            // æ‰¾åˆ°ç¬¬ä¸€ä¸ªç©ºä½
+            // ÕÒµ½µÚÒ»¸ö¿ÕÎ»
             if (iFirstEmpty == -1)
             {
                 iFirstEmpty = i;
@@ -1396,18 +1401,18 @@ bool CUnit::addItem(CItem* pItem)
         
         if (strcmp(pSlot->getRootId(), pItem->getRootId()) == 0)
         {
-            // æ‰¾åˆ°å †å ç»„
+            // ÕÒµ½¶Ñµş×é
             int iFree = pSlot->getFreeStackSize();
             if (iFree > 0)
             {
-                // å¯ä»¥ç»§ç»­å †å 
+                // ¿ÉÒÔ¼ÌĞø¶Ñµş
                 unsigned int uInc = pSlot->incStackCount(pItem->getStackCount());
                 pItem->decStatckCount(uInc);
                 return true;
             }
             else
             {
-                // å·²åˆ°è¾¾å †å ä¸Šé™
+                // ÒÑµ½´ï¶ÑµşÉÏÏŞ
                 return false;
             }
         }
@@ -1415,12 +1420,12 @@ bool CUnit::addItem(CItem* pItem)
     
     if (iFirstEmpty == -1)
     {
-        // æ²¡æ‰¾åˆ°ç©ºä½
+        // Ã»ÕÒµ½¿ÕÎ»
         return false;
     }
     
     m_vecItems.setObject(iFirstEmpty, pItem);
-    pItem->onAddToNewSlot(this);  // æ¶ˆæ¯ä¼ é€’
+    pItem->onAddToNewSlot(this);  // ÏûÏ¢´«µİ
     
     onAddItem(iFirstEmpty);
     
@@ -1472,7 +1477,7 @@ int CUnit::useItem(int iIndex)
     {
         return -1;
     }
-    //LOG("%sä½¿ç”¨äº†%s", getName(), pItem->getName());
+    //LOG("%sÊ¹ÓÃÁË%s", getName(), pItem->getName());
     
     if (pItem->getStackCount() == 0)
     {
@@ -1507,255 +1512,22 @@ bool CUnit::isDoingNothing() const
     return m_dwDoingFlags == 0;
 }
 
-const CUnit::UNIT_MOVE_PARAMS CUnit::CONST_DEFAULT_MOVE_PARAMS;
-const float CUnit::CONST_MIN_MOVE_SPEED = 1.0;
-const float CUnit::CONST_MAX_MOVE_SPEED = 500.0;
-const float CUnit::CONST_MIN_MOVE_SPEED_MULRIPLE = 0.2; // æœ€å°å˜ä¸ºåŸºç¡€é€Ÿåº¦çš„20%
-
-void CUnit::setBaseMoveSpeed(float fMoveSpeed)
+void CUnit::setDraw( CUnitDraw* pDraw )
 {
-    fMoveSpeed = max(fMoveSpeed, CONST_MIN_MOVE_SPEED);
-    fMoveSpeed = min(fMoveSpeed, CONST_MAX_MOVE_SPEED);
-    m_fBaseMoveSpeed = fMoveSpeed;
-	updateMoveSpeedDelta();
-}
+    if (pDraw != m_pDraw)
+    {
+        if (m_pDraw != NULL)
+        {
+            m_pDraw->release();
+        }
+        else
+        {
+            pDraw->retain();
+            pDraw->setUnit(this);
+        }
 
-void CUnit::setExMoveSpeed(const CExtraCoeff& roExMoveSpeed)
-{
-    m_oExMoveSpeed = roExMoveSpeed;
-    updateMoveSpeedDelta();
-}
-
-float CUnit::getRealMoveSpeed() const
-{
-    float fMoveSpeed = getBaseMoveSpeed();
-    float fRealMoveSpeed = m_oExMoveSpeed.getValue(fMoveSpeed);
-    // å–æœ€å°ç§»åŠ¨é€Ÿåº¦å’Œæœ€å°å‡é€Ÿåé€Ÿåº¦çš„æœ€å¤§å€¼ä½œä¸ºæœ€å°ç§»åŠ¨é€Ÿåº¦
-    float fMinMoveSpeed = fMoveSpeed * CONST_MIN_MOVE_SPEED_MULRIPLE;
-    fMinMoveSpeed = max(CONST_MIN_MOVE_SPEED, fMinMoveSpeed);
-    // è®¡ç®—å®é™…ç§»åŠ¨é€Ÿåº¦ï¼Œä¸å¾—è¶…è¿‡ä¸Šè¿°è®¡ç®—æ‰€å¾—çš„æœ€å°å€¼
-    fRealMoveSpeed = max(fRealMoveSpeed, fMinMoveSpeed);
-    // è®¡ç®—å®é™…ç§»åŠ¨é€Ÿåº¦ï¼Œä¸å¾—è¶…è¿‡æœ€å¤§ç§»åŠ¨é€Ÿåº¦
-    return min(fRealMoveSpeed, CONST_MAX_MOVE_SPEED);
-}
-
-void CUnit::updateMoveSpeedDelta()
-{
-    float fMoveSpeed = getBaseMoveSpeed();
-    if (fMoveSpeed < FLT_EPSILON)
-    {
-        stopMove();
-        return;
+        m_pDraw = pDraw;
     }
-	
-}
-
-void CUnit::move(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMoveParams /*= CONST_DEFAULT_MOVE_PARAMS*/)
-{
-    /*
-    if (isDead() || isFixed())
-    {
-        return;
-    }
-    m_oLastMoveToTarget = roPos;
-    if (isDoingOr(kSuspended))
-    {
-        return;
-    }
-    
-    CPoint roOrg = getPosition();
-    if (roMoveParams.bAutoFlipX)
-    {
-        //turnTo(roOrg.x > roPos.x);
-    }
-
-    float fMoveSpeed = getBaseMoveSpeed();
-    float fDur = roOrg.getDistance(roPos) / max(fMoveSpeed, FLT_EPSILON);
-    CFiniteTimeAction* pSeq = new CSequence(new CMoveTo(fDur, roPos),
-                                            new CCallFunc(this, (FUNC_CALLFUNC_ND)&CUnit::onMoveEnd)
-                                           );
-    float fDelta = getRealMoveSpeed() / fMoveSpeed;
-    CSpeed* pActMoveTo = new CSpeed(pSeq, fDelta);
-    pActMoveTo->setTag(kActMoveTo);
-    // çªå‘ç§»åŠ¨æŒ‡ä»¤ï¼Œæ‰“æ–­æ—§ç§»åŠ¨ï¼Œæ‰“æ–­æ”»å‡»ï¼Œæ‰“æ–­æ–½æ³•
-    if (isDoingOr(kMoving))
-    {
-        m_oSprite.stopActionByTag(kActMoveTo);
-    }
-    if (isDoingOr(kAttacking) && roMoveParams.bCancelAttack)
-    {
-        stopAttack();
-    }
-    if (isDoingOr(kCasting) && roMoveParams.bCancelCast)
-    {
-        stopCast();
-    }
-    m_oSprite.runAction(pActMoveTo);
-    if (!isDoingOr(kSpinning))
-    {
-        setAnimation(kAnimationMove, -1, fDelta, kActMove, NULL);
-    }
-
-    startDoing(kMoving);
-    if (roMoveParams.bIntended)
-    {
-        startDoing(kIntended);
-    }
-    else
-    {
-        endDoing(kIntended);
-    }
-    */
-}
-
-void CUnit::follow(int iTargetUnit, const UNIT_MOVE_PARAMS& roMoveParams /*= CONST_DEFAULT_MOVE_PARAMS*/)
-{
-    /*
-    if (isDead() || isFixed())
-    {
-        return;
-    }
-    M_DEF_GM(pGm);
-    CGameUnit* pTarget = getUnitLayer()->getUnitByKey(iTargetKey);
-    if (!pTarget)
-    {
-        return;
-    }
-    const CCPoint& roPos = pTarget->getPosition();
-    m_oLastMoveToTarget = roPos;
-    if (isDoingOr(kSuspended))
-    {
-        return;
-    }
-    CCPoint roOrg = getPosition();
-    if (roMoveParams.bAutoFlipX)
-    {
-        turnTo(roOrg.x > roPos.x);
-    }
-
-    float fMoveSpeed = getBaseMoveSpeed();
-    float fDur = pGm->getDistance(roOrg, roPos) / fMoveSpeed;
-    CCActionInterval* pSeq = CCSequence::createWithTwoActions(
-                                                              CCMoveToNode::create(fDur, pTarget->getSprite(), true, roMoveParams.fMaxOffsetY, 1, pTarget->getHalfOfHeight()),
-                                                              CCCallFuncN::create(this, callfuncN_selector(CUnit::onActMoveEnd))
-                                                             );
-    float fDelta = getRealMoveSpeed() / fMoveSpeed;
-    CCSpeed* pActMoveTo = CCSpeed::create(pSeq, fDelta);
-    pActMoveTo->setTag(kActMoveTo);
-    // çªå‘ç§»åŠ¨æŒ‡ä»¤ï¼Œæ‰“æ–­æ—§ç§»åŠ¨ï¼Œæ‰“æ–­æ”»å‡»
-    if (isDoingOr(kMoving))
-    {
-        m_oSprite.stopActionByTag(kActMoveTo);
-    }
-    if (isDoingOr(kAttacking) && roMoveParams.bCancelAttack)
-    {
-        stopAttack();
-    }
-    if (isDoingOr(kCasting) && roMoveParams.bCancelCast)
-    {
-        stopCast();
-    }
-    m_oSprite.runAction(pActMoveTo);
-    if (!isDoingOr(kSpinning))
-    {
-        setAnimation(kAnimationMove, -1, fDelta, kActMove, NULL);
-    }
-
-    startDoing(kMoving);
-    if (roMoveParams.bIntended)
-    {
-        startDoing(kIntended);
-    }
-    else
-    {
-        endDoing(kIntended);
-    }
-    */
-}
-
-//void CUnit::moveAlongPath(CUnitPath* pPath, bool bIntended /*= true*/, bool bRestart /*= false*/, float fBufArrive /*= 5.0*/)
-//{
-//    if (pPath != m_pMovePath)
-//    {
-//        CC_SAFE_RETAIN(pPath);
-//        CC_SAFE_RELEASE(m_pMovePath);
-//        m_pMovePath = pPath;
-//    }
-//
-//    if (!m_pMovePath)
-//    {
-//        return;
-//    }
-//
-//    if (bRestart)
-//    {
-//        m_dwPathCurPos = 0;
-//    }
-//
-//    if (m_fPathBufArrive != fBufArrive)
-//    {
-//        m_fPathBufArrive = MAX(FLT_EPSILON, fBufArrive);
-//    }
-//
-//    setPathIntended(bIntended);
-//
-//    const CCPoint* pTarget = m_pMovePath->getCurTargetPoint(m_dwPathCurPos);
-//    if (pTarget)
-//    {
-//        UNIT_MOVE_PARAMS oMp;
-//        oMp.bIntended = m_bPathIntended;
-//        moveTo(*pTarget, oMp);
-//    }
-//}
-#if 0
-void CUnit::setPathIntended(bool bPathIntended /*= true*/)
-{
-    m_bPathIntended = bPathIntended;
-}
-
-bool CUnit::isPathIntended() const
-{
-    return m_bPathIntended;
-}
-#endif
-void CUnit::stopMove()
-{
-    /*
-    m_oSprite.stopActionByTag(kActMoveTo);
-    m_oSprite.stopActionByTag(kActMove);
-    endDoing(kMoving | kIntended);
-    if (!isDoingOr(kSpinning))
-    {
-        setDefaultFrame();
-    }
-     */
-}
-
-void CUnit::onMoveEnd(CUnit* pUnit, void* pData)
-{
-}
-
-void CUnit::startMoveAct(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMoveParams/* = CONST_DEFAULT_MOVE_PARAMS*/)
-{
-    CPoint roOrg = getPosition();
-    if (roMoveParams.bAutoFlipX)
-    {
-        //turnTo(roOrg.x > roPos.x);
-    }
-
-    float fMoveSpeed = getBaseMoveSpeed();
-    float fDur = roOrg.getDistance(roPos) / max(fMoveSpeed, FLT_EPSILON);
-    CFiniteTimeAction* pSeq = new CSequence(new CMoveTo(fDur, roPos),
-                                            new CCallFunc(this, (FUNC_CALLFUNC_ND)&CUnit::onMoveEnd)
-                                           );
-    
-    float fDelta = getRealMoveSpeed() / fMoveSpeed;
-    CSpeed* pActMoveTo = new CSpeed(pSeq, fDelta);
-    pActMoveTo->setTag(kActMoveTo);
-}
-
-void CUnit::stopMoveAct()
-{
 }
 
 void CUnit::runAction(CAction* pAction)
@@ -1797,8 +1569,31 @@ CWorld::~CWorld()
 {
 }
 
+void CWorld::onInit()
+{
+}
+
+void CWorld::onTick(float dt)
+{
+}
+
+void CWorld::onAddUnit( CUnit* pUnit )
+{
+}
+
+void CWorld::onDelUnit( CUnit* pUnit )
+{
+}
+
+void CWorld::init()
+{
+    onInit();
+}
+
 void CWorld::addUnit(CUnit* pUnit)
 {
+    onAddUnit(pUnit);
+
     pUnit->setWorld(this);
     m_mapUnits.addObject(pUnit);
 }
@@ -1811,11 +1606,28 @@ void CWorld::delUnit(int id)
         return;
     }
     
+    delUnit(it, false);
+}
+
+void CWorld::delUnit( MAP_UNITS::iterator it, bool bRevivable /*= false*/ )
+{
+    onDelUnit(it->second);
+
     CUnit* pDel = it->second;
-    m_mapUnits.erase(it);
-    
-    pDel->setWorld(NULL);
+    if (bRevivable)
+    {
+        // Èç¹ûµ¥Î»¿ÉÒÔ¸´»î£¬ÍÏ½øÁé»êÓò
+        m_mapUnitsToRevive.addObject(pDel);
+    }
+    else
+    {
+        // Èç¹û²»¿ÉÒÔ¸´»î£¬¸Ãµ¥Î»½«²»ÔÙÓµÓĞÊÀ½ç£¬Çå³ı¸Ãµ¥Î»µÄËùÓĞCDÖĞµÄ¼¼ÄÜ
+        pDel->setWorld(NULL);
+        cleanSkillsCD(pDel);
+    }
+
     pDel->release();
+    m_mapUnits.erase(it);
 }
 
 CUnit* CWorld::getUnit(int id) const
@@ -1921,25 +1733,25 @@ void CWorld::cleanSkillsCD(CUnit* pUnit)
 
 void CWorld::skillReady(CSkill* pSkill)
 {
-    // ç”±äºæŠ€èƒ½çš„æ‰€æœ‰è€…å¯èƒ½åœ¨ç­‰å¾…é‡ç”Ÿï¼Œæ‰€ä»¥ä¸»ä¸–ç•Œå¯èƒ½ä¸å­˜åœ¨è¯¥å•ä½ï¼Œä½†æ˜¯å•ä½ä»æœªè¢«é‡Šæ”¾
+    // ÓÉÓÚ¼¼ÄÜµÄËùÓĞÕß¿ÉÄÜÔÚµÈ´ıÖØÉú£¬ËùÒÔÖ÷ÊÀ½ç¿ÉÄÜ²»´æÔÚ¸Ãµ¥Î»£¬µ«ÊÇµ¥Î»ÈÔÎ´±»ÊÍ·Å
     CUnit* o = getUnit(pSkill->getOwner()->getId());
     if (o != NULL)
     {
-        // å­˜åœ¨äºä¸»ä¸–ç•Œä¸­ï¼Œåˆ™è§¦å‘äº‹ä»¶
+        // ´æÔÚÓÚÖ÷ÊÀ½çÖĞ£¬Ôò´¥·¢ÊÂ¼ş
         o->onSkillReady(pSkill);
     }
 }
 
-void CWorld::onTick(float dt)
+void CWorld::step(float dt)
 {
-    // å•ä½æ­»äº¡åæŠ€èƒ½CDç‹¬ç«‹è®¡ç®—ï¼Œæ‰€ä»¥æ”¾åœ¨æ­¤å¤„ç‹¬ç«‹è®¡ç®—ï¼Œä¸æ•´åˆåˆ°å•ä½onTickä¸­
+    // µ¥Î»ËÀÍöºó¼¼ÄÜCD¶ÀÁ¢¼ÆËã£¬ËùÒÔ·ÅÔÚ´Ë´¦¶ÀÁ¢¼ÆËã£¬²»ÕûºÏµ½µ¥Î»onTickÖĞ
     M_MAP_FOREACH(m_mapSkillsCD)
     {
         CSkill* pSkill = M_MAP_EACH;
         pSkill->setCoolingDownElapsed(pSkill->getCoolingDownElapsed() + dt);
         if (!pSkill->isCoolingDown())
         {
-            // å¦‚æœæŠ€èƒ½å·²ç»å°±ç»ªï¼Œä»ä¸­åˆ é™¤
+            // Èç¹û¼¼ÄÜÒÑ¾­¾ÍĞ÷£¬´ÓÖĞÉ¾³ı
             skillReady(pSkill);
             pSkill->release();
             
@@ -1954,31 +1766,37 @@ void CWorld::onTick(float dt)
     M_MAP_FOREACH(m_mapUnits)
     {
         CUnit* pUnit = M_MAP_EACH;
-        pUnit->onTick(dt);
+        pUnit->step(dt);
         
         if (pUnit->isDead())
         {
-            // å•ä½å·²ç»æ­»äº¡
+            // µ¥Î»ÒÑ¾­ËÀÍö
+#if 1
+            delUnit(it++, pUnit->isRevivable());
+#else
             if (pUnit->isRevivable())
             {
-                // å¦‚æœå•ä½å¯ä»¥å¤æ´»ï¼Œæ‹–è¿›çµé­‚åŸŸ
+                // Èç¹ûµ¥Î»¿ÉÒÔ¸´»î£¬ÍÏ½øÁé»êÓò
                 m_mapUnitsToRevive.addObject(pUnit);
             }
             else
             {
-                // å¦‚æœä¸å¯ä»¥å¤æ´»ï¼Œè¯¥å•ä½å°†ä¸å†æ‹¥æœ‰ä¸–ç•Œï¼Œæ¸…é™¤è¯¥å•ä½çš„æ‰€æœ‰CDä¸­çš„æŠ€èƒ½
+                // Èç¹û²»¿ÉÒÔ¸´»î£¬¸Ãµ¥Î»½«²»ÔÙÓµÓĞÊÀ½ç£¬Çå³ı¸Ãµ¥Î»µÄËùÓĞCDÖĞµÄ¼¼ÄÜ
                 pUnit->setWorld(NULL);
                 cleanSkillsCD(pUnit);
             }
             pUnit->release();
             
             M_MAP_DEL_CUR_NEXT(m_mapUnits);
+#endif
         }
         else
         {
             M_MAP_NEXT;
         }
     }
+    
+    onTick(dt);
 }
 
 int CWorld::addTemplateSkill(CSkill* pSkill)
@@ -1999,5 +1817,6 @@ CSkill* CWorld::copySkill(int id) const
         return NULL;
     }
     
-    return pSkill->copy()->dcast(pSkill);  // å³æ—¶è½¬æ¢å¤±è´¥ä¹Ÿä¸éœ€è¦é‡Šæ”¾ï¼Œå› ä¸ºæœ‰CAutoReleasePool
+    return pSkill->copy()->dcast(pSkill);  // ¼´Ê±×ª»»Ê§°ÜÒ²²»ĞèÒªÊÍ·Å£¬ÒòÎªÓĞCAutoReleasePool
 }
+

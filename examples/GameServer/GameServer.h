@@ -2,7 +2,7 @@
  * File:   GameServer.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ7:39
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç7:39
  */
 
 #ifndef __GAMESERVER_H__
@@ -20,7 +20,9 @@ class CMyWorld : public CWorld
 public:
     CMyWorld();
     
-    virtual void onTick(float dt);
+    virtual void onInit();
+
+    virtual void step(float dt);
     
     // for test
     virtual void onActEnd(CUnit* pUnit, void* Data);
@@ -39,7 +41,7 @@ public:
     virtual void SleepForMSec(unsigned int dwMSec);
     
 protected:
-    CMyWorld* m_pG;
+    CMyWorld* m_pWorld;
 };
 
 

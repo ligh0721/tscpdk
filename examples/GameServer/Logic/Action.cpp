@@ -2,12 +2,13 @@
  * File:   Action.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ10æ—¥, ä¸‹åˆ11:15
+ * Created on 2013Äê12ÔÂ10ÈÕ, ÏÂÎç11:15
  */
 
 #include "CommInc.h"
 #include "Action.h"
 #include "Unit.h"
+#include "Draw.h"
 
 
 // CAction
@@ -218,7 +219,9 @@ CMoveTo::~CMoveTo()
 
 void CMoveTo::start(CUnit* pTarget)
 {
-    m_oStartPos = pTarget->getPosition();
+    CUnitDraw2D* d = DCAST(pTarget->getDraw(), CUnitDraw2D*);
+    assert(d != NULL);
+    m_oStartPos = d->getPosition();
     m_oDelta = m_oEndPos - m_oStartPos;
     CFiniteTimeAction::start(pTarget);
 }
@@ -230,7 +233,8 @@ void CMoveTo::update(float fTimePercent)
         return;
     }
     
-    m_pTarget->setPosition(m_oDelta * fTimePercent + m_oStartPos);
+    CUnitDraw2D* d = DCAST(m_pTarget->getDraw(), CUnitDraw2D*);
+    d->setPosition(m_oDelta * fTimePercent + m_oStartPos);
 }
 
 // CSpeed

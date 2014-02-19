@@ -2,7 +2,7 @@
  * File:   MutiRefObject.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ11:37
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç11:37
  */
 
 #ifndef __MULTIREFOBJECT_H__
@@ -36,6 +36,9 @@ protected:
     const int CONST_ID;
     
 };
+
+typedef void (CMultiRefObject::*FUNC_CALLFUNC_ND)(CMultiRefObject*, void*);
+typedef void (CMultiRefObject::*FUNC_CALLFUNC_N)(CMultiRefObject*);
 
 class CAutoReleasePool
 {

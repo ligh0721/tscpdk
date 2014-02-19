@@ -2,7 +2,7 @@
  * File:   ComDef.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:34
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:34
  */
 
 #ifndef __COMDEF_H__
@@ -242,19 +242,19 @@ const char* GBKToUTF8(const char* pGBKStr);
 #define M_MAP_EACH (it->second)
 #define M_MAP_IT it
 
-// ä¸å¾—ç»§ç»­å¼•ç”¨M_MAP_EACHã€M_MAP_ITï¼Œå¿…é¡»ç«‹å³å®Œæˆæœ¬æ¬¡å¾ªçŽ¯continue/break/return
+// ²»µÃ¼ÌÐøÒýÓÃM_MAP_EACH¡¢M_MAP_IT£¬±ØÐëÁ¢¼´Íê³É±¾´ÎÑ­»·continue/break/return
 #define M_MAP_DEL_CUR_NEXT(mapVar) (mapVar).erase(it++)
-// éœ€ç«‹å³continue
+// ÐèÁ¢¼´continue
 #define M_MAP_NEXT ++it
 
 #define M_VEC_FOREACH(vecVar) for (auto it = (vecVar).begin(); it != (vecVar).end(); )
 #define M_VEC_EACH (*it)
 #define M_VEC_IT it
 
-// ä¸å¾—ç»§ç»­å¼•ç”¨M_VEC_EACHã€M_VEC_ITï¼Œå¿…é¡»ç«‹å³å®Œæˆæœ¬æ¬¡å¾ªçŽ¯continue/break/return
+// ²»µÃ¼ÌÐøÒýÓÃM_VEC_EACH¡¢M_VEC_IT£¬±ØÐëÁ¢¼´Íê³É±¾´ÎÑ­»·continue/break/return
 #define M_VEC_DEL_CUR_NEXT(vecVar) it = (vecVar).erase(it)
 
-// éœ€ç«‹å³continue
+// ÐèÁ¢¼´continue
 #define M_VEC_NEXT ++it
 
 #define M_SINGLETON(name) \
@@ -273,6 +273,12 @@ const char* GBKToUTF8(const char* pGBKStr);
         \
         return pInst; \
     }
+
+inline int toInt(double fValue)
+{
+    return (int)((fValue > 0.0 ? 0.5 : -0.5) + fValue);
+}
+
 
 #endif	/* __COMDEF_H__ */
 

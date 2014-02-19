@@ -2,7 +2,7 @@
  * File:   Base.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ9æ—¥, ä¸Šåˆ12:42
+ * Created on 2013Äê12ÔÂ9ÈÕ, ÉÏÎç12:42
  */
 
 #include "CommInc.h"

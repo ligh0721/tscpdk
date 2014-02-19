@@ -2,7 +2,7 @@
  * File:   Action.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ10æ—¥, ä¸‹åˆ11:15
+ * Created on 2013Äê12ÔÂ10ÈÕ, ÏÂÎç11:15
  */
 
 #ifndef __ACTION_H__

@@ -2,7 +2,7 @@
  * File:   CommInc.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:44
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:44
  */
 
 #ifndef __COMINC_H__
@@ -18,6 +18,7 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#include <math.h>
 
 #include <string>
 #include <vector>

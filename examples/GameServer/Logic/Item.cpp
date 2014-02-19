@@ -2,7 +2,7 @@
  * File:   Item.cpp
  * Author: thunderliu
  * 
- * Created on 2014å¹´2æœˆ11æ—¥, ä¸Šåˆ1:08
+ * Created on 2014Äê2ÔÂ11ÈÕ, ÉÏÎç1:08
  */
 
 #include "CommInc.h"
@@ -87,13 +87,13 @@ bool CItem::use()
 
     if (m_eItemType == kEquipment)
     {
-        // å±äºè£…å¤‡ï¼Œä½¿ç”¨ä»£è¡¨è¿›è¡Œè£…å¤‡
-        // TODO: è£…å¤‡ä¸Š
+        // ÊôÓÚ×°±¸£¬Ê¹ÓÃ´ú±í½øĞĞ×°±¸
+        // TODO: ×°±¸ÉÏ
     }
     else
     {
-        // ç›´æ¥å¯ä»¥ä½¿ç”¨
-        LOG("%sä½¿ç”¨äº†%s", o->getName(), getName());
+        // Ö±½Ó¿ÉÒÔÊ¹ÓÃ
+        LOG("%sÊ¹ÓÃÁË%s", o->getName(), getName());
         if (m_vecActSkills.front()->cast() == false)
         {
             return false;
@@ -103,7 +103,7 @@ bool CItem::use()
         
         if (m_eItemType == kConsumable)
         {
-            // æ˜¯æ¶ˆè€—å“
+            // ÊÇÏûºÄÆ·
             decStatckCount(1);
         }
     }
@@ -121,15 +121,15 @@ bool CItem::checkConditions()
     
     if (m_eItemType == kEquipment)
     {
-        // å±äºè£…å¤‡ï¼Œä½¿ç”¨ä»£è¡¨è¿›è¡Œè£…å¤‡
-        // TODO: è£…å¤‡ä¸Š
+        // ÊôÓÚ×°±¸£¬Ê¹ÓÃ´ú±í½øĞĞ×°±¸
+        // TODO: ×°±¸ÉÏ
     }
     else
     {
-        // ç›´æ¥å¯ä»¥ä½¿ç”¨
+        // Ö±½Ó¿ÉÒÔÊ¹ÓÃ
         if (m_vecActSkills.empty())
         {
-            // æ— ä¸»åŠ¨æŠ€èƒ½ï¼Œç›´æ¥è¿”å›
+            // ÎŞÖ÷¶¯¼¼ÄÜ£¬Ö±½Ó·µ»Ø
             return false;
         }
         

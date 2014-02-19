@@ -2,13 +2,15 @@
  * File:   Skill.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ11:45
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç11:45
  */
 
 #include "CommInc.h"
 #include "Unit.h"
 #include "Skill.h"
+#include "MultiRefObject.h"
 #include "Application.h"
+#include "Draw.h"
 
 
 // CSkill
@@ -88,7 +90,7 @@ void CSkill::onUnitDie()
 {
 }
 
-void CSkill::onUnitHpChange(float fChanged)
+void CSkill::onUnitChangeHp(float fChanged)
 {
 }
 
@@ -179,9 +181,9 @@ bool CActiveSkill::cast()
     }
     
     CUnit* o = getOwner();
-    LOG("%s%s%s..", o->getName(), o->getAttackSkillId() == getId() ? "çš„" : "æ–½æ”¾äº†", getName());
+    LOG("%s%s%s..", o->getName(), o->getAttackSkillId() == getId() ? "µÄ" : "Ê©·ÅÁË", getName());
     coolDown();
-    onUnitCastSkill();  // onCastSkillåœ¨cdå˜åŒ–ä¸‹é¢ï¼Œæ‰€ä»¥å¯ä»¥æ·»åŠ é‡ç½®cdçš„é€»è¾‘
+    onUnitCastSkill();  // onCastSkillÔÚcd±ä»¯ÏÂÃæ£¬ËùÒÔ¿ÉÒÔÌí¼ÓÖØÖÃcdµÄÂß¼­
     
     return true;
 }
@@ -227,11 +229,11 @@ bool CBuffSkill::isDone() const
 }
 
 // CAttackAct
-const float CAttackAct::CONST_MIN_ATTACK_SPEED_INTERVAL = 0.1; // 0.1s
-const float CAttackAct::CONST_MIN_ATTACK_SPEED_MULRIPLE = 0.2; // 20%
-const float CAttackAct::CONST_MAX_ATTACK_SPEED_MULRIPLE = 5.0; // 500%
-const float CAttackAct::CONST_MAX_ATTACK_BUFFER_RANGE = 50.0;
-const float CAttackAct::CONST_MAX_CLOSE_ATTACK_Y_RANGE = 5.0;
+const float CAttackAct::CONST_MIN_ATTACK_SPEED_INTERVAL = 0.1f; // 0.1s
+const float CAttackAct::CONST_MIN_ATTACK_SPEED_MULRIPLE = 0.2f; // 20%
+const float CAttackAct::CONST_MAX_ATTACK_SPEED_MULRIPLE = 5.0f; // 500%
+const float CAttackAct::CONST_MAX_ATTACK_BUFFER_RANGE = 50.0f;
+const float CAttackAct::CONST_MAX_CLOSE_ATTACK_Y_RANGE = 5.0f;
 
 CAttackAct::CAttackAct(const char* pRootId, const char* pName, float fCoolDown, const CAttackValue& rAttackValue, float fAttackValueRandomRange)
 : CActiveSkill(pRootId, pName, fCoolDown, CCommandTarget::kUnitTarget, CUnitForce::kEnemy)
@@ -292,7 +294,7 @@ void CAttackAct::onUnitCastSkill()
     
     ad = o->attackAdv(ad, t);
     
-    // è¿™é‡Œæ¨¡æ‹Ÿå‘½ä¸­
+    // ÕâÀïÄ£ÄâÃüÖÐ
     if (ad == NULL)
     {
         return;
@@ -356,13 +358,13 @@ float CAttackAct::getBaseAttackSpeed() const
 float CAttackAct::getRealAttackInterval() const
 {
     float fAttackInterval = getBaseAttackInterval();
-    // å–æ”»å‡»é€Ÿåº¦ç³»æ•°ï¼Œä¸å¾—å°äºŽæœ€å°å€¼
+    // È¡¹¥»÷ËÙ¶ÈÏµÊý£¬²»µÃÐ¡ÓÚ×îÐ¡Öµ
     float fMulriple = m_oExAttackSpeed.getMulriple();
     fMulriple = max(fMulriple, CONST_MIN_ATTACK_SPEED_MULRIPLE);
-    // è®¡ç®—ä¸¤ç§æœ€çŸ­æ”»å‡»é—´éš”ä¸­çš„æœ€å¤§å€¼ä½œä¸ºæœ€çŸ­æ”»å‡»é—´éš”
+    // ¼ÆËãÁ½ÖÖ×î¶Ì¹¥»÷¼ä¸ôÖÐµÄ×î´óÖµ×÷Îª×î¶Ì¹¥»÷¼ä¸ô
     float fMinAttackSpeedInterval = fAttackInterval / CONST_MAX_ATTACK_SPEED_MULRIPLE;
     fMinAttackSpeedInterval = max(CONST_MIN_ATTACK_SPEED_INTERVAL, fMinAttackSpeedInterval);
-    // è®¡ç®—å®žé™…æ”»å‡»é—´éš”ï¼Œä¸å¾—å°äºŽä¸Šè¿°æœ€çŸ­æ”»å‡»é—´éš”
+    // ¼ÆËãÊµ¼Ê¹¥»÷¼ä¸ô£¬²»µÃÐ¡ÓÚÉÏÊö×î¶Ì¹¥»÷¼ä¸ô
     float fRealAttackInterval = fAttackInterval / fMulriple;
     return max(fRealAttackInterval, fMinAttackSpeedInterval);
 }
@@ -374,7 +376,7 @@ float CAttackAct::getRealAttackSpeed() const
 
 void CAttackAct::setExAttackSpeed(const CExtraCoeff& roExAttackSpeed)
 {
-    m_oExAttackSpeed = roExAttackSpeed;  // å¿…é¡»ä¿ç•™åŽŸå€¼ï¼Œå°½ç®¡æœ‰å¯èƒ½è¶…å‡ºèŒƒå›´ï¼Œå¦åˆ™æŠ€èƒ½åˆ é™¤åŽæ— æ³•æ¢å¤
+    m_oExAttackSpeed = roExAttackSpeed;  // ±ØÐë±£ÁôÔ­Öµ£¬¾¡¹ÜÓÐ¿ÉÄÜ³¬³ö·¶Î§£¬·ñÔò¼¼ÄÜÉ¾³ýºóÎÞ·¨»Ö¸´
     updateAttackSpeed();
 }
 
@@ -449,11 +451,11 @@ bool CBuffMakerAct::checkConditions()
     if (m_pTarget != NULL &&
         !o->isEffective(DCAST(m_pTarget, CUnitForce*), getEffectiveTypeFlags()))
     {
-        // å¦‚æžœæœ‰å¾…é€‰ç›®æ ‡(è‡ªèº«æˆ–å‘½ä»¤ç›®æ ‡)ï¼Œä½†æ˜¯æ— æ³•ä½œç”¨
+        // Èç¹ûÓÐ´ýÑ¡Ä¿±ê(×ÔÉí»òÃüÁîÄ¿±ê)£¬µ«ÊÇÎÞ·¨×÷ÓÃ
         if (getCastTargetRadius() <= FLT_EPSILON ||
             getEffectiveTypeFlags() == CUnitForce::kSelf)
         {
-            // å¦‚æžœä¸èƒ½æ‰©å±•å‘¨å›´å•ä½
+            // Èç¹û²»ÄÜÀ©Õ¹ÖÜÎ§µ¥Î»
             return false;
         }
     }
@@ -484,6 +486,8 @@ void CBuffMakerAct::onUnitCastSkill()
     }
     
     CWorld* w = o->getWorld();
+    CUnitDraw2D* od  = DCAST(o->getDraw(), CUnitDraw2D*);
+    assert(od != NULL);
     CBuffSkill* pBuff = NULL;
     CWorld::MAP_UNITS& mapUnits = w->getUnits();
     M_MAP_FOREACH(mapUnits)
@@ -501,7 +505,9 @@ void CBuffMakerAct::onUnitCastSkill()
             continue;
         }
 
-        if (u->getPosition().getDistance(o->getPosition()) > getCastTargetRadius())
+        CUnitDraw2D* ud  = DCAST(u->getDraw(), CUnitDraw2D*);
+        assert(ud != NULL);
+        if (ud->getPosition().getDistance(od->getPosition()) > getCastTargetRadius())
         {
             continue;
         }
@@ -545,6 +551,8 @@ void CAuraPas::onUnitInterval()
     CWorld* w = o->getWorld();
     CBuffSkill* pBuff = NULL;
     
+    CUnitDraw2D* od = DCAST(o->getDraw(), CUnitDraw2D*);
+    assert(od != NULL);
     CWorld::MAP_UNITS& mapUnits = w->getUnits();
     M_MAP_FOREACH(mapUnits)
     {
@@ -561,7 +569,9 @@ void CAuraPas::onUnitInterval()
             continue;
         }
 
-        if (u->getPosition().getDistance(o->getPosition()) > m_fRange)
+        CUnitDraw2D* ud = DCAST(u->getDraw(), CUnitDraw2D*);
+        assert(ud != NULL);
+        if (ud->getPosition().getDistance(od->getPosition()) > m_fRange)
         {
             continue;
         }
@@ -647,7 +657,7 @@ void CVampirePas::onUnitDamageTargetDone(float fDamage, CUnit* pTarget)
     CUnit* o = getOwner();
     float fDtHp = fDamage * getPercentConversion();
     o->setHp(o->getHp() + fDtHp);
-    LOG("%sæ¢å¤%dç‚¹HP", o->getName(), (int)round(fDtHp));
+    LOG("%s»Ö¸´%dµãHP", o->getName(), toInt(fDtHp));
 }
 
 // CStunBuff
@@ -667,7 +677,7 @@ void CStunBuff::onUnitAddSkill()
     CUnit* o = getOwner();
     o->suspend();
     
-    LOG("%s%sä¸­", o->getName(), getName());
+    LOG("%s%sÖÐ", o->getName(), getName());
 }
 
 void CStunBuff::onUnitDelSkill()
@@ -677,7 +687,7 @@ void CStunBuff::onUnitDelSkill()
     
     if (!o->isSuspended())
     {
-        LOG("%sä¸åœ¨%s", o->getName(), getName());
+        LOG("%s²»ÔÚ%s", o->getName(), getName());
     }
 }
 
@@ -706,7 +716,7 @@ void CDoubleAttackBuff::onUnitAddSkill()
     
     pAtk->resetCD();
     
-    LOG("%så°†è¿›è¡Œ%s", o->getName(), getName());
+    LOG("%s½«½øÐÐ%s", o->getName(), getName());
 }
 
 // CSpeedBuff
@@ -727,8 +737,10 @@ void CSpeedBuff::onUnitAddSkill()
 {
     CUnit* o = getOwner();
     
-    const CExtraCoeff& rExMs = o->getExMoveSpeed();
-    o->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() + m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() + m_oExMoveSpeedDelta.getAddend()));
+    CUnitDraw2D* od = DCAST(o->getDraw(), CUnitDraw2D*);
+    assert(od != NULL);
+    const CExtraCoeff& rExMs = od->getExMoveSpeed();
+    od->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() + m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() + m_oExMoveSpeedDelta.getAddend()));
     
     CAttackAct* pAtkAct = NULL;
     o->getActiveSkill(o->getAttackSkillId())->dcast(pAtkAct);
@@ -741,15 +753,16 @@ void CSpeedBuff::onUnitAddSkill()
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() + m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() + m_oExAttackSpeedDelta.getAddend()));
     
-    LOG("%sæ”»å‡»é€Ÿåº¦å˜æ…¢(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
+    LOG("%s¹¥»÷ËÙ¶È±äÂý(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
 }
 
 void CSpeedBuff::onUnitDelSkill()
 {
     CUnit* o = getOwner();
     
-    const CExtraCoeff& rExMs = o->getExMoveSpeed();
-    o->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() - m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() - m_oExMoveSpeedDelta.getAddend()));
+    CUnitDraw2D* d = dynamic_cast<CUnitDraw2D*>(o->getDraw());
+    const CExtraCoeff& rExMs = d->getExMoveSpeed();
+    d->setExMoveSpeed(CExtraCoeff(rExMs.getMulriple() - m_oExMoveSpeedDelta.getMulriple(), rExMs.getAddend() - m_oExMoveSpeedDelta.getAddend()));
     
     CAttackAct* pAtkAct = NULL;
     o->getActiveSkill(o->getAttackSkillId())->dcast(pAtkAct);
@@ -762,7 +775,7 @@ void CSpeedBuff::onUnitDelSkill()
     const CExtraCoeff& rExAs = pAtkAct->getExAttackSpeed();
     pAtkAct->setExAttackSpeed(CExtraCoeff(rExAs.getMulriple() - m_oExAttackSpeedDelta.getMulriple(), rExAs.getAddend() - m_oExAttackSpeedDelta.getAddend()));
     
-    LOG("%sæ”»å‡»é€Ÿåº¦æ¢å¤(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
+    LOG("%s¹¥»÷ËÙ¶È»Ö¸´(%.1fs->%.1fs)\n", o->getName(), fTestOld, pAtkAct->getRealAttackInterval());
 }
 
 // CHpChangeBuff
@@ -784,13 +797,13 @@ CMultiRefObject* CHpChangeBuff::copy() const
 void CHpChangeBuff::onUnitAddSkill()
 {
     CUnit* o = getOwner();
-    LOG("%sèŽ·å¾—%sçŠ¶æ€(%.1f%s/s)\n", o->getName(), getName(), isPercentile() ? getHpChange() * 100 / getInterval() : getHpChange() / getInterval(), isPercentile() ? "%" : "");
+    LOG("%s»ñµÃ%s×´Ì¬(%.1f%s/s)\n", o->getName(), getName(), isPercentile() ? getHpChange() * 100 / getInterval() : getHpChange() / getInterval(), isPercentile() ? "%" : "");
 }
 
 void CHpChangeBuff::onUnitDelSkill()
 {
     CUnit* o = getOwner();
-    LOG("%så¤±åŽ»%sçŠ¶æ€\n", o->getName(), getName());
+    LOG("%sÊ§È¥%s×´Ì¬\n", o->getName(), getName());
 }
 
 void CHpChangeBuff::onUnitInterval()

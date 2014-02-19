@@ -2,7 +2,7 @@
  * File:   Unit.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:55
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:55
  */
 
 #ifndef __UNIT_H__
@@ -11,10 +11,10 @@
 #include "MultiRefObject.h"
 #include "Level.h"
 #include "Base.h"
-// ç¦æ­¢åœ¨æ­¤å¤„åŒ…å«Unit.hæ–‡ä»¶
+// ½ûÖ¹ÔÚ´Ë´¦°üº¬Unit.hÎÄ¼ş
 
 
-// æ”»å‡»æ•°å€¼ï¼Œç”±å¤šç§ç±»å‹çš„æ”»å‡»ç»„åˆè€Œæˆ
+// ¹¥»÷ÊıÖµ£¬ÓÉ¶àÖÖÀàĞÍµÄ¹¥»÷×éºÏ¶ø³É
 class CAttackValue
 {
 public:
@@ -53,7 +53,7 @@ public:
     ARR_ATTACK_VALUES m_afValues;
 };
 
-// æŠ¤ç”²æ•°å€¼ï¼Œç”±å¤šç§ç±»å‹çš„æŠ¤ç”²ç»„åˆè€Œæˆ
+// »¤¼×ÊıÖµ£¬ÓÉ¶àÖÖÀàĞÍµÄ»¤¼××éºÏ¶ø³É
 class CArmorValue
 {
 public:
@@ -94,7 +94,7 @@ public:
     ARR_ARMOR_VALUES m_afValues;
 };
 
-// æ”»å‡»-æŠ¤ç”²è®¡ç®—ç³»æ•°
+// ¹¥»÷-»¤¼×¼ÆËãÏµÊı
 extern float g_afAttackArmorTable[CArmorValue::CONST_MAX_ARMOR_TYPE][CAttackValue::CONST_MAX_ATTACK_TYPE];
 
 class CAttackBuff
@@ -121,8 +121,8 @@ public:
     void addAttackBuff(const CAttackBuff& rAttackBuff);
 };
 
-// f = ax + bï¼Œxä¸ºåŸºå‡†å€¼ï¼Œaå’Œbåˆ†ä¸ºè®¡ç®—ä¹˜æ•°å’ŒåŠ æ•°ï¼Œåº”ç”¨æƒ…å½¢ï¼šè§¦å‘é‡å‡»å°†é€ æˆè‡ªèº«æ”»å‡»åŠ›çš„2å€å¹¶é¢å¤–é™„åŠ 30ç‚¹çš„ä¼¤å®³ï¼›æå‡è‡ªèº«20%çš„åŸºç¡€åŠ›é‡å€¼
-// åº”ç”¨è¯¥æ¥ç»“æ„ï¼Œå¯è½»æ˜“è§£å†³è£…å¤‡æ­¦å™¨/æ–°å¢BUFFï¼Œå¸è½½æ­¦å™¨/åˆ é™¤BUFFåçš„å±æ€§ä¸€è‡´
+// f = ax + b£¬xÎª»ù×¼Öµ£¬aºÍb·ÖÎª¼ÆËã³ËÊıºÍ¼ÓÊı£¬Ó¦ÓÃÇéĞÎ£º´¥·¢ÖØ»÷½«Ôì³É×ÔÉí¹¥»÷Á¦µÄ2±¶²¢¶îÍâ¸½¼Ó30µãµÄÉËº¦£»ÌáÉı×ÔÉí20%µÄ»ù´¡Á¦Á¿Öµ
+// Ó¦ÓÃ¸Ã½Ó½á¹¹£¬¿ÉÇáÒ×½â¾ö×°±¸ÎäÆ÷/ĞÂÔöBUFF£¬Ğ¶ÔØÎäÆ÷/É¾³ıBUFFºóµÄÊôĞÔÒ»ÖÂ
 class CExtraCoeff
 {
 public:
@@ -239,6 +239,8 @@ public:
     M_SYNTHESIZE(CUnit*, m_pNotifyUnit, NotifyUnit);
 };
 
+class CUnitDraw;
+
 class CUnit : public CMultiRefObject, public CUnitForce, public CLevelExp
 {
 protected:
@@ -258,11 +260,6 @@ public:
     
     M_SYNTHESIZE_STR(Name);
     
-    M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oPosition, Position);
-    M_SYNTHESIZE(float, m_fHalfWidth, HalfWidth);
-    M_SYNTHESIZE(float, m_fHalfHeight, HalfHeight);
-    M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oFirePoint, FirePoint);
-    
     bool revive(float fHp);
     bool setHp(float fHp);
     void setMaxHp(float fMaxHp);
@@ -274,27 +271,28 @@ public:
     
     // @override
     
-    // ç­‰çº§å˜åŒ–æ—¶è¢«é€šçŸ¥ï¼Œåœ¨é€šè¿‡addExpå‡çº§çš„æ—¶å€™ï¼Œé€šå¸¸æ¥è®²iChangedæ€»æ˜¯ä¸º1ï¼Œå°½ç®¡ç»éªŒæœ‰æ—¶ä¼šè¶³å¤Ÿå¤šä»¥è‡³äºè¿å‡2çº§
+    // µÈ¼¶±ä»¯Ê±±»Í¨Öª£¬ÔÚÍ¨¹ıaddExpÉı¼¶µÄÊ±ºò£¬Í¨³£À´½²iChanged×ÜÊÇÎª1£¬¾¡¹Ü¾­ÑéÓĞÊ±»á×ã¹»¶àÒÔÖÁÓÚÁ¬Éı2¼¶
     virtual void onChangeLevel(int iChanged);
-    // å¤æ´»æ—¶è¢«é€šçŸ¥
+    // ¸´»îÊ±±»Í¨Öª
     virtual void onRevive();
-    // æ­»äº¡æ—¶è¢«é€šçŸ¥
+    // ËÀÍöÊ±±»Í¨Öª
     virtual void onDie();
-    // è¡€é‡å˜åŒ–æ—¶è¢«é€šçŸ¥
+    // ÑªÁ¿±ä»¯Ê±±»Í¨Öª
     virtual void onChangeHp(float fChanged);
-    // æ¯ä¸ªæ¸¸æˆåˆ»è¢«é€šçŸ¥
+    // Ã¿¸öÓÎÏ·¿Ì±»Í¨Öª
+    virtual void step(float dt);
     virtual void onTick(float dt);
-    // æ”»å‡»å‘å‡ºæ—¶ï¼Œæ”»å‡»è€…è¢«é€šçŸ¥
+    // ¹¥»÷·¢³öÊ±£¬¹¥»÷Õß±»Í¨Öª
     virtual CAttackData* onAttackTarget(CAttackData* pAttack, CUnit* pTarget, uint32_t dwTriggerMask);
-    // æ”»å‡»æŠµè¾¾æ—¶ï¼Œå—å®³è€…è¢«é€šçŸ¥
+    // ¹¥»÷µÖ´ïÊ±£¬ÊÜº¦Õß±»Í¨Öª
     virtual CAttackData* onAttacked(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerMask);
-    // æ”»å‡»å‘½ä¸­æ—¶ï¼Œå—å®³è€…è¢«é€šçŸ¥
+    // ¹¥»÷ÃüÖĞÊ±£¬ÊÜº¦Õß±»Í¨Öª
     virtual void onDamaged(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerMask);
-    // æ”»å‡»å‘½ä¸­æ—¶ï¼Œå—å®³è€…è¢«é€šçŸ¥
+    // ¹¥»÷ÃüÖĞÊ±£¬ÊÜº¦Õß±»Í¨Öª
     virtual void onDamagedDone(float fDamage, CUnit* pSource, uint32_t dwTriggerMask);
-    // æ”»å‡»å‘½ä¸­æ—¶ï¼Œæ”»å‡»è€…è¢«é€šçŸ¥
+    // ¹¥»÷ÃüÖĞÊ±£¬¹¥»÷Õß±»Í¨Öª
     virtual void onDamageTargetDone(float fDamage, CUnit* pTarget, uint32_t dwTriggerMask);
-    // æ”»å‡»æ•°æ®æ¶ˆé™¤æ—¶è¢«é€šçŸ¥ï¼Œé€šå¸¸ç”±æŠ•å°„ç‰©æºå¸¦æ”»å‡»æ•°æ®ï¼ŒäºŒè€…ç”Ÿå­˜æœŸä¸€è‡´
+    // ¹¥»÷Êı¾İÏû³ıÊ±±»Í¨Öª£¬Í¨³£ÓÉÍ¶ÉäÎïĞ¯´ø¹¥»÷Êı¾İ£¬¶şÕßÉú´æÆÚÒ»ÖÂ
     virtual void onDestroyProjectile(CProjectile* pProjectile);
     
     virtual void onAddActiveSkill(CActiveSkill* pSkill);
@@ -304,8 +302,8 @@ public:
     virtual void onAddBuffSkill(CBuffSkill* pSkill);
     virtual void onDelBuffSkill(CBuffSkill* pSkill);
     
-    // æŠ€èƒ½CDç»“æŸæ—¶è¢«é€šçŸ¥
-    virtual void onSkillReady(CSkill* pSkill);  // ä»¥åå°†åŒºåˆ†å‡ºonItemReady
+    // ¼¼ÄÜCD½áÊøÊ±±»Í¨Öª
+    virtual void onSkillReady(CSkill* pSkill);  // ÒÔºó½«Çø·Ö³öonItemReady
     
     virtual void onAddItem(int iIndex);
     virtual void onDelItem(int iIndex);
@@ -345,35 +343,35 @@ public:
     
     //////////////////// attack & damaged ////////////////////////
     
-    // é«˜å±‚æ”»å‡»å‡½æ•°ï¼Œç”¨äºæœ€åˆç”Ÿæˆæ”»å‡»æ•°æ®ï¼Œä¸€ä¸ªæ”»å‡»åŠ¨ä½œç”Ÿæˆçš„æ”»å‡»æ•°æ®ï¼Œä¸€èˆ¬è°ƒç”¨è¯¥å‡½æ•°
-    // æ”»å‡»åŠ¨ä½œï¼Œå¯å¯¹ç›®æ ‡é€ æˆåŠ¨ä½œï¼Œå¦‚æ™®é€šæ”»å‡»ã€æŠ€èƒ½ç­‰
-    // æ”»å‡»æ•°æ®ï¼Œæè¿°è¿™æ¬¡æ”»å‡»çš„æ•°æ®ä½“ï¼Œè¯¦è§ CAttackData å®šä¹‰
-    // å†…éƒ¨ä¼šè‡ªè¡Œè°ƒç”¨ä¸­å±‚ã€åº•å±‚æ”»å‡»å‡½æ•°ï¼Œå¯¹æ”»å‡»æ•°æ®è¿›è¡Œä¼ é€’å¹¶å¤„ç†ï¼Œé€šå¸¸è¿”å›å¤„ç†åçš„æ”»å‡»æ•°æ®ï¼Œä¹Ÿå¯ä»¥è¿”å› NULL
-    // å†…éƒ¨ä¼šæ ¹æ®äººç‰©å±æ€§å¯¹æ”»å‡»æ•°æ®è¿›è¡Œä¸€æ¬¡å˜æ¢ï¼Œå¦‚åŠ›é‡åŠ æˆç­‰
+    // ¸ß²ã¹¥»÷º¯Êı£¬ÓÃÓÚ×î³õÉú³É¹¥»÷Êı¾İ£¬Ò»¸ö¹¥»÷¶¯×÷Éú³ÉµÄ¹¥»÷Êı¾İ£¬Ò»°ãµ÷ÓÃ¸Ãº¯Êı
+    // ¹¥»÷¶¯×÷£¬¿É¶ÔÄ¿±êÔì³É¶¯×÷£¬ÈçÆÕÍ¨¹¥»÷¡¢¼¼ÄÜµÈ
+    // ¹¥»÷Êı¾İ£¬ÃèÊöÕâ´Î¹¥»÷µÄÊı¾İÌå£¬Ïê¼û CAttackData ¶¨Òå
+    // ÄÚ²¿»á×ÔĞĞµ÷ÓÃÖĞ²ã¡¢µ×²ã¹¥»÷º¯Êı£¬¶Ô¹¥»÷Êı¾İ½øĞĞ´«µİ²¢´¦Àí£¬Í¨³£·µ»Ø´¦ÀíºóµÄ¹¥»÷Êı¾İ£¬Ò²¿ÉÒÔ·µ»Ø NULL
+    // ÄÚ²¿»á¸ù¾İÈËÎïÊôĞÔ¶Ô¹¥»÷Êı¾İ½øĞĞÒ»´Î±ä»»£¬ÈçÁ¦Á¿¼Ó³ÉµÈ
     CAttackData* attackAdv(CAttackData* pAttack, CUnit* pTarget, uint32_t dwTriggerMask = kNoMasked);
     
-    // ä¸­å±‚æ”»å‡»å‡½æ•°
-    // è§¦å‘ onAttackTargetï¼Œ
+    // ÖĞ²ã¹¥»÷º¯Êı
+    // ´¥·¢ onAttackTarget£¬
     CAttackData* attackMid(CAttackData* pAttack, CUnit* pTarget, uint32_t dwTriggerMask = kNoMasked);
     
-    // åº•å±‚æ”»å‡»å‡½æ•°ï¼Œç›®å‰æ— é€»è¾‘ï¼Œåªæ˜¯å°†ä¼ é€’è¿‡æ¥çš„æ”»å‡»æ•°æ®è¿”å›ç»™ä¸Šå±‚
+    // µ×²ã¹¥»÷º¯Êı£¬Ä¿Ç°ÎŞÂß¼­£¬Ö»ÊÇ½«´«µİ¹ıÀ´µÄ¹¥»÷Êı¾İ·µ»Ø¸øÉÏ²ã
     CAttackData* attackBot(CAttackData* pAttack, CUnit* pTarget, uint32_t dwTriggerMask = kNoMasked);
     
-    // é«˜å±‚ä¼¤å®³å‡½æ•°ï¼Œæ”»å‡»è€…ç”Ÿæˆçš„æ”»å‡»åˆ°è¾¾ç›®æ ‡åï¼Œç›®æ ‡å°†è°ƒç”¨è¯¥å‡½æ•°ï¼Œè®¡ç®—è‡ªèº«ä¼¤å®³
-    // å†…éƒ¨ä¼šå¯¹æ”»å‡»æ•°æ®è¿›è¡Œå‘ä¸‹ä¼ é€’
-    // è§¦å‘ onAttackedï¼Œå¦‚æœonAttackedè¿”å› NULLï¼Œä¼¤å®³å°†ä¸ä¼šç»§ç»­å‘ä¸‹å±‚å‡½æ•°ä¼ é€’ï¼Œå‡½æ•°è¿”å›falseã€‚æ¯”å¦‚è¯´ï¼Œé—ªé¿æˆåŠŸï¼Œä¼¤å®³æ— éœ€ç»§ç»­è®¡ç®—
+    // ¸ß²ãÉËº¦º¯Êı£¬¹¥»÷ÕßÉú³ÉµÄ¹¥»÷µ½´ïÄ¿±êºó£¬Ä¿±ê½«µ÷ÓÃ¸Ãº¯Êı£¬¼ÆËã×ÔÉíÉËº¦
+    // ÄÚ²¿»á¶Ô¹¥»÷Êı¾İ½øĞĞÏòÏÂ´«µİ
+    // ´¥·¢ onAttacked£¬Èç¹ûonAttacked·µ»Ø NULL£¬ÉËº¦½«²»»á¼ÌĞøÏòÏÂ²ãº¯Êı´«µİ£¬º¯Êı·µ»Øfalse¡£±ÈÈçËµ£¬ÉÁ±Ü³É¹¦£¬ÉËº¦ÎŞĞè¼ÌĞø¼ÆËã
     bool damagedAdv(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerMask = kNoMasked);
     
-    // ä¸­å±‚ä¼¤å®³å‡½æ•°ï¼Œæ”»å‡»æ•°æ®å·²ç»ä¸å¯æ¶ˆé™¤ï¼Œä½†å¯ä»¥æ”¹å˜ä¼¤å®³æ•°æ®ï¼Œå¦‚ä¸€æ¬¡å…¨é¢ä¼¤å®³çš„æŠµæŒ¡ï¼Œè™½ç„¶ç»“æœä¸Šçœ‹HPæ²¡æœ‰å—æŸï¼Œä½†ä»ç„¶ä¼šè¿›è¡Œä¸€æ¬¡0ä¼¤å®³åˆ¤å®š
-    // è§¦å‘ onDamaged
-    // éå†æ”»å‡»æ•°æ®æºå¸¦çš„BUFFé“¾ï¼Œæ ¹æ®é™„ç€æ¦‚ç‡å¯¹å•ä½è‡ªèº«è¿›è¡ŒBUFFé™„åŠ 
-    // æ ¹æ®å•ä½å±æ€§ï¼Œè¿›è¡Œæ”»å‡»æ•°æ®å˜æ¢ï¼Œå¦‚æŠ—æ€§å¯¹æ”»å‡»æ•°æ®çš„å½±å“
-    // æ ¹æ®å•ä½æŠ¤ç”²ï¼Œè¿›è¡Œæ”»å‡»æ•°æ®ä¸­çš„æ”»å‡»æ•°å€¼å˜æ¢
+    // ÖĞ²ãÉËº¦º¯Êı£¬¹¥»÷Êı¾İÒÑ¾­²»¿ÉÏû³ı£¬µ«¿ÉÒÔ¸Ä±äÉËº¦Êı¾İ£¬ÈçÒ»´ÎÈ«¶îÉËº¦µÄµÖµ²£¬ËäÈ»½á¹ûÉÏ¿´HPÃ»ÓĞÊÜËğ£¬µ«ÈÔÈ»»á½øĞĞÒ»´Î0ÉËº¦ÅĞ¶¨
+    // ´¥·¢ onDamaged
+    // ±éÀú¹¥»÷Êı¾İĞ¯´øµÄBUFFÁ´£¬¸ù¾İ¸½×Å¸ÅÂÊ¶Ôµ¥Î»×ÔÉí½øĞĞBUFF¸½¼Ó
+    // ¸ù¾İµ¥Î»ÊôĞÔ£¬½øĞĞ¹¥»÷Êı¾İ±ä»»£¬Èç¿¹ĞÔ¶Ô¹¥»÷Êı¾İµÄÓ°Ïì
+    // ¸ù¾İµ¥Î»»¤¼×£¬½øĞĞ¹¥»÷Êı¾İÖĞµÄ¹¥»÷ÊıÖµ±ä»»
     void damagedMid(CAttackData* pAttack, CUnit* pSource, uint32_t dwTriggerMask = kNoMasked);
     
-    // åº•å±‚ä¼¤å®³å‡½æ•°ï¼Œç›´æ¥æ‰£é™¤æŒ‡å®šé‡çš„HPå€¼
-    // è§¦å‘ä¼¤å®³æºçš„ onDamaeTarget
-    // è°ƒç”¨ setHpï¼Œä»è€Œä¼šè§¦å‘ onHpChangeï¼Œå¯èƒ½ä¼šè§¦å‘onDie
+    // µ×²ãÉËº¦º¯Êı£¬Ö±½Ó¿Û³ıÖ¸¶¨Á¿µÄHPÖµ
+    // ´¥·¢ÉËº¦Ô´µÄ onDamaeTarget
+    // µ÷ÓÃ setHp£¬´Ó¶ø»á´¥·¢ onHpChange£¬¿ÉÄÜ»á´¥·¢onDie
     void damagedBot(float fDamage, CUnit* pSource, uint32_t dwTriggerMask = kNoMasked);
     
     float calcDamage(CAttackValue::ATTACK_TYPE eAttackType, float fAttackValue, CArmorValue::ARMOR_TYPE eArmorType, float fArmorValue);
@@ -388,7 +386,7 @@ public:
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_BUFF_SKILLS, m_mapBuffSkills, BuffSkills);
 
 
-    // ä¸‹åˆ—å‡½æ•°å°†å®‰å…¨çš„å¢åˆ è§¦å‘å™¨
+    // ÏÂÁĞº¯Êı½«°²È«µÄÔöÉ¾´¥·¢Æ÷
     
     void addActiveSkill(CActiveSkill* pSkill, bool bNotify = true);
     void addActiveSkill(int id, int iLevel = 1);
@@ -426,24 +424,24 @@ public:
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapTriggerSkillsToDel, TriggerSkillsToDel);
     
 public:
-    // æ·»åŠ è§¦å‘å™¨
+    // Ìí¼Ó´¥·¢Æ÷
     void addSkillToTriggers(CSkill* pSkill);
     
-    // åˆ é™¤è§¦å‘å™¨
+    // É¾³ı´¥·¢Æ÷
     void delSkillFromTriggers(CSkill* pSkill);
     
 protected:
-    // åªèƒ½åœ¨triggerFreeçš„æ—¶å€™è°ƒç”¨
+    // Ö»ÄÜÔÚtriggerFreeµÄÊ±ºòµ÷ÓÃ
     void updateTriggerSkillsWhenTriggerFree();
     
-    // triggerä¹‹é—´æ˜¯æœ‰å¯èƒ½å­˜åœ¨åµŒå¥—å…³ç³»çš„
-    // ä¸ºäº†å®‰å…¨å¢åˆ triggerï¼Œéœ€è¦ç»´æŠ¤ä¸€ä¸ªå¼•ç”¨è®¡æ•°
+    // triggerÖ®¼äÊÇÓĞ¿ÉÄÜ´æÔÚÇ¶Ì×¹ØÏµµÄ
+    // ÎªÁË°²È«ÔöÉ¾trigger£¬ĞèÒªÎ¬»¤Ò»¸öÒıÓÃ¼ÆÊı
     int m_iTriggerRefCount;
     void beginTrigger();
     void endTrigger();
     bool isTriggerFree() const;
     
-    // è§¦å‘å™¨é“¾çš„è§¦å‘ï¼Œå†…éƒ¨è°ƒç”¨
+    // ´¥·¢Æ÷Á´µÄ´¥·¢£¬ÄÚ²¿µ÷ÓÃ
     void triggerOnRevive();
     void triggerOnDie();
     void triggerOnHpChange(float fChanged);
@@ -456,11 +454,11 @@ protected:
     void triggerOnDamageTargetDone(float fDamage, CUnit* pTarget);
     void triggerOnDestroyProjectile(CProjectile* pProjectile);
     
-    // ä¸ºå•ä½æ·»åŠ /åˆ é™¤æŠ€èƒ½
+    // Îªµ¥Î»Ìí¼Ó/É¾³ı¼¼ÄÜ
     //void addSkill(CSkill* pSkill);
     //void delSkill(CSkill* pSkill);
     
-    // ä¸ºå•ä½æ·»åŠ /åˆ é™¤/è¦†ç›–åˆ é™¤BUFF
+    // Îªµ¥Î»Ìí¼Ó/É¾³ı/¸²¸ÇÉ¾³ıBUFF
     //void addBuff(CBuffSkill* pBuff, bool bForce = false);
     //void delBuff(CBuffSkill* pBuff, bool bAfterTriggerLoop = true);
     //void coverBuff(CBuffSkill* pBuff);
@@ -474,7 +472,7 @@ public:
     M_SYNTHESIZE(int, m_iAttackSkillId, AttackSkillId);
     
     M_SYNTHESIZE_PASS_BY_REF(CCommandTarget, m_oCastTarget, CastTarget);
-    virtual int castSkill(int iActiveSkillId);  // å¯èƒ½æ˜¯æ–½æ³•å¤±è´¥ï¼Œæ–½æ³•ä¸­ï¼Œæ–½æ³•è¿½é€ä¸­ï¼Œæ‰€ä»¥è¿”å›ç±»å‹ä¸ºint
+    virtual int castSkill(int iActiveSkillId);  // ¿ÉÄÜÊÇÊ©·¨Ê§°Ü£¬Ê©·¨ÖĞ£¬Ê©·¨×·ÖğÖĞ£¬ËùÒÔ·µ»ØÀàĞÍÎªint
     
     M_SYNTHESIZE(CArmorValue::ARMOR_TYPE, m_eArmorType, ArmorType);
     M_SYNTHESIZE(float, m_fBaseArmorValue, BaseArmorValue);
@@ -510,61 +508,11 @@ public:
     virtual bool isDoingAnd(uint32_t dwFlags) const;
     virtual bool isDoingNothing() const;
     
-    /////////////////////// move - begin //////////////////////////////
-    struct UNIT_MOVE_PARAMS
-    {
-        UNIT_MOVE_PARAMS(
-                         bool bIntended_ = true,
-                         bool bCancelAttack_ = true,
-                         bool bAutoFlipX_ = true,
-                         float fMaxOffsetY_ = 0.0f,
-                         bool bCancelCast_ = true
-                         )
-        : bIntended(bIntended_)
-        , bCancelAttack(bCancelAttack_)
-        , bAutoFlipX(bAutoFlipX_)
-        , fMaxOffsetY(fMaxOffsetY_)
-        , bCancelCast(bCancelCast_)
-        {}
-        bool bIntended;
-        bool bCancelAttack;
-        bool bAutoFlipX;
-        float fMaxOffsetY;
-        bool bCancelCast;
-    };
-    
-    static const UNIT_MOVE_PARAMS CONST_DEFAULT_MOVE_PARAMS;
-    static const float CONST_MIN_MOVE_SPEED;
-    static const float CONST_MAX_MOVE_SPEED;
-    static const float CONST_MIN_MOVE_SPEED_MULRIPLE;
-    
-    M_SYNTHESIZE_READONLY(float, m_fBaseMoveSpeed, BaseMoveSpeed);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(CExtraCoeff, m_oExMoveSpeed, ExMoveSpeed);
-    M_SYNTHESIZE_BOOL(Fixed);
-    M_SYNTHESIZE_BOOL(Flip); // default: false, toward right
-    M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oMoveTarget, MoveTarget)
-    
-	void setBaseMoveSpeed(float fMoveSpeed);
-    void setExMoveSpeed(const CExtraCoeff& roExMoveSpeed);
-    
-    float getRealMoveSpeed() const;
-    
-	virtual void updateMoveSpeedDelta();
-    
-    virtual void move(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMoveParams = CONST_DEFAULT_MOVE_PARAMS);
-    virtual void follow(int iTargetUnit, const UNIT_MOVE_PARAMS& roMoveParams = CONST_DEFAULT_MOVE_PARAMS);
-    //virtual void moveAlongPath(CUnitPath* pPath, bool bIntended = true, bool bRestart = false, float fBufArrive = 5.0);
-    virtual void stopMove();
-    virtual void onMoveEnd(CUnit* pUnit, void* pData);
-    
-    virtual void startMoveAct(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMoveParams = CONST_DEFAULT_MOVE_PARAMS);
-    virtual void stopMoveAct();
-    
-    M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oLastMoveToTarget, LastMoveToTarget);
-    //M_SYNTHESIZE(uint32_t, m_dwPathCurPos, PathCurPos);
-    //virtual void setPathIntended(bool bPathIntended = true);
-    //virtual bool isPathIntended() const;
     // --------------- Action ----------------
+
+    M_SYNTHESIZE_READONLY(CUnitDraw*, m_pDraw, Draw);
+    virtual void setDraw(CUnitDraw* pDraw);
+
 protected:
     CActionManager m_oActMgr;
     
@@ -604,7 +552,7 @@ public:
     CProjectile(const char* pRootId);
     virtual ~CProjectile();
 
-    // å•ä½å’ŒæŠ›å°„ç‰©éç´§å¯†è”ç³»ï¼Œå³å•ä½æ­»äº¡åæŠ›å°„ç‰©ä¸ä¸€å®šä¼šé‡Šæ”¾ï¼Œæ‰€ä»¥å¿…é¡»é€šè¿‡IDå¼•ç”¨
+    // µ¥Î»ºÍÅ×ÉäÎï·Ç½ôÃÜÁªÏµ£¬¼´µ¥Î»ËÀÍöºóÅ×ÉäÎï²»Ò»¶¨»áÊÍ·Å£¬ËùÒÔ±ØĞëÍ¨¹ıIDÒıÓÃ
     M_SYNTHESIZE(int, m_iSourceUnit, SourceUnit);
     M_SYNTHESIZE(int, m_iStartUnit, StartUnit);
     M_SYNTHESIZE(int, m_iTargetUnit, TargetUnit);
@@ -624,18 +572,23 @@ protected:
 
 };
 
-
-
-
 class CWorld : public CMultiRefObject
 {
 public:
     CWorld();
     virtual ~CWorld();
+
+    virtual void onInit();
+    virtual void onTick(float dt);
+    virtual void onAddUnit(CUnit* pUnit);
+    virtual void onDelUnit(CUnit* pUnit);
+
+    void init();
     
     typedef CMultiRefMap<CUnit*> MAP_UNITS;
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_UNITS, m_mapUnits, Units);
     void addUnit(CUnit* pUnit);
+    void delUnit(MAP_UNITS::iterator it, bool bRevivable = false);
     void delUnit(int id);
     CUnit* getUnit(int id) const;
     
@@ -655,8 +608,8 @@ protected:
     void skillReady(CSkill* pSkill);
     
 public:
-    virtual void onTick(float dt);
-        
+    virtual void step(float dt);
+
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_SKILLS, m_mapTemplateSkills, TemplateSkills);
     int addTemplateSkill(CSkill* pSkill);
     void loadTemplateSkills();

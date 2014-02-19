@@ -2,7 +2,7 @@
  * File:   Level.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:31
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:31
  */
 
 #include "CommInc.h"

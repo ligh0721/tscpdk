@@ -2,7 +2,7 @@
  * File:   Level.h
  * Author: thunderliu
  *
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ10:31
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç10:31
  */
 
 #ifndef __LEVEL_H__
@@ -18,9 +18,9 @@ public:
     virtual void onLevelChange(CLevelExp* pLevel, int iChanged) = 0; // @override
 };
 
-// ç­‰çº§ç»éªŒå€¼ï¼Œèµ‹äºˆå¯¹è±¡ç­‰çº§ç»éªŒå€¼ç‰¹æ€§
-// éœ€è¦è¦†ç›– updateMaxExpï¼Œæä¾›ç­‰çº§å˜åŒ–æ—¶çš„æœ€å¤§ç»éªŒå€¼å˜æ›´å…¬å¼
-// ç­‰çº§å˜åŒ–åè§¦å‘ onLevelChange
+// µÈ¼¶¾­ÑéÖµ£¬¸³Óè¶ÔÏóµÈ¼¶¾­ÑéÖµÌØĞÔ
+// ĞèÒª¸²¸Ç updateMaxExp£¬Ìá¹©µÈ¼¶±ä»¯Ê±µÄ×î´ó¾­ÑéÖµ±ä¸ü¹«Ê½
+// µÈ¼¶±ä»¯ºó´¥·¢ onLevelChange
 class CLevelExp
 {
 public:

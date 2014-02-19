@@ -2,7 +2,7 @@
  * File:   GameServer.cpp
  * Author: thunderliu
  * 
- * Created on 2013å¹´12æœˆ8æ—¥, ä¸‹åˆ7:39
+ * Created on 2013Äê12ÔÂ8ÈÕ, ÏÂÎç7:39
  */
 
 #include <tscpdk/TSCPDK.h>
@@ -12,6 +12,7 @@
 #include "Action.h"
 #include "Skill.h"
 #include "Item.h"
+#include "Draw.h"
 
 
 USING_NS_TSCPDK;
@@ -93,7 +94,7 @@ public:
 
     virtual void onUnitAddActiveSkill(CActiveSkill* pSkill)
     {
-        if (strcmp(pSkill->getName(), "æ¢å¤æœ¯") == 0)
+        if (strcmp(pSkill->getName(), "»Ö¸´Êõ") == 0)
         {
             m_iTreat = pSkill->getId();
         }
@@ -108,7 +109,7 @@ public:
             return;
         }
 
-        if (strcmp(pItem->getName(), "HPæ¢å¤è¯å‰‚") == 0)
+        if (strcmp(pItem->getName(), "HP»Ö¸´Ò©¼Á") == 0)
         {
             m_iRedElixir = iIndex;
         }
@@ -127,13 +128,17 @@ CMyWorld::CMyWorld()
 : m_iUnitId(0)
 , m_iHero(0)
 {
+}
+
+void CMyWorld::onInit()
+{
     CUnit* u = NULL;
     CSkill* pSkill = NULL;
     CItem* pItem = NULL;
     int id = 0;
 
     CAttackAct* atk = new CAttackAct("NormalAttack",
-                                     "æ”»å‡»",
+                                     "¹¥»÷",
                                      1.25,
                                      CAttackValue(1,
                                                   CAttackValue::kPhysical,
@@ -142,6 +147,7 @@ CMyWorld::CMyWorld()
 
     u = new CUnit("CUnit");
     m_iUnitId = u->getId();
+    u->setDraw(new CUnitDraw2D("Slime"));
     u->setName("Slime");
     u->setMaxHp(1000.0001);
     u->setForceByIndex(1);
@@ -150,7 +156,7 @@ CMyWorld::CMyWorld()
     this->addUnit(u);
 
     pSkill = new CHpChangeBuff("HP+10%/0.5s|2s",
-                               "æ¢å¤",
+                               "»Ö¸´",
                                2.0,
                                false,
                                0.5,
@@ -159,7 +165,7 @@ CMyWorld::CMyWorld()
     id = addTemplateSkill(pSkill);
 
     pSkill = new CBuffMakerAct("Treat.[HP+10%/0.5s|2s]",
-                               "æ¢å¤æœ¯",
+                               "»Ö¸´Êõ",
                                30.0,
                                id,
                                CCommandTarget::kNoTarget,
@@ -170,8 +176,9 @@ CMyWorld::CMyWorld()
 
     // hero init
     u = new CUnit("CUnit");
+    u->setDraw(new CUnitDraw2D("Sw0rd"));
     m_iHero = u->getId();
-    u->setName("ã€Sw0rdã€‘");
+    u->setName("¡¾Sw0rd¡¿");
     u->setMaxHp(1000.0001);
     u->setForceByIndex(0);
     u->setAI(CHeroAI());
@@ -179,7 +186,7 @@ CMyWorld::CMyWorld()
 
     // Add Skills
     atk = new CAttackAct("NormalAttack",
-                         "æ”»å‡»",
+                         "¹¥»÷",
                          2.0,
                          CAttackValue(1,
                                       CAttackValue::kPhysical,
@@ -188,7 +195,7 @@ CMyWorld::CMyWorld()
     u->addActiveSkill(atk);
 
     pSkill = new CSpeedBuff("SlowDown",
-                            "å‡é€Ÿ",
+                            "¼õËÙ",
                             2.0f,
                             false,
                             CExtraCoeff(0.0f, 0.0f),
@@ -196,7 +203,7 @@ CMyWorld::CMyWorld()
     id = addTemplateSkill(pSkill);
 
     pSkill = new CAuraPas("Aura.[SlowDown]",
-                          "å‡é€Ÿå…‰ç¯",
+                          "¼õËÙ¹â»·",
                           1.0f,
                           id,
                           500.0f,
@@ -205,13 +212,13 @@ CMyWorld::CMyWorld()
     u->addPassiveSkill(id);
 
     pSkill = new CStunBuff("Stun3s",
-                           "æ˜è¿·",
+                           "»èÃÔ",
                            3.0,
                            false);
     id = addTemplateSkill(pSkill);
 
     pSkill = new CAttackBuffMakerPas("AttackBuffMaker.[Stun3s]",
-                                     "é‡å‡»",
+                                     "ÖØ»÷",
                                      0.2f,
                                      id,
                                      false,
@@ -220,11 +227,11 @@ CMyWorld::CMyWorld()
     u->addPassiveSkill(id);
 
     pSkill = new CDoubleAttackBuff("DoubleAttack",
-                                   "è¿å‡»");
+                                   "Á¬»÷");
     id = addTemplateSkill(pSkill);
 
     pSkill = new CAttackBuffMakerPas("AttackBuffMaker.[DoubleAttack]",
-                                     "è¿å‡»",
+                                     "Á¬»÷",
                                      0.3f,
                                      id,
                                      true,
@@ -233,7 +240,7 @@ CMyWorld::CMyWorld()
     u->addPassiveSkill(id);
 
     pSkill = new CVampirePas("Vampire",
-                             "20%å¸è¡€",
+                             "20%ÎüÑª",
                              0.20f);
     id = addTemplateSkill(pSkill);
     u->addPassiveSkill(id);
@@ -244,7 +251,7 @@ CMyWorld::CMyWorld()
     u->setPackageSize(10);
 
     pSkill = new CHpChangeBuff("Bleed",
-                               "å‡ºè¡€",
+                               "³öÑª",
                                5.0f,
                                false,
                                0.5f,
@@ -254,19 +261,19 @@ CMyWorld::CMyWorld()
     id = addTemplateSkill(pSkill);
 
     pSkill = new CAttackBuffMakerPas("AttackBuffMaker.[Bleed]",
-                                     "é‡ä¼¤",
+                                     "ÖØÉË",
                                      0.2f,
                                      id,
                                      false,
                                      CExtraCoeff(2.0));
     id = addTemplateSkill(pSkill);
 
-    pItem = new CItem("BleedSword", "é‡ä¼¤å‰‘åˆƒ", CItem::kNormal, 1);
+    pItem = new CItem("BleedSword", "ÖØÉË½£ÈĞ", CItem::kNormal, 1);
     pItem->addPassiveSkill(id);
     u->addItem(pItem);
 
     pSkill = new CHpChangeBuff("HP+10/0.5s|10s",
-                               "HPæ¢å¤",
+                               "HP»Ö¸´",
                                10.0,
                                false,
                                0.5,
@@ -275,14 +282,14 @@ CMyWorld::CMyWorld()
     id = addTemplateSkill(pSkill);
 
     pSkill = new CBuffMakerAct("Treat.[HP+10/0.5s|10s]",
-                               "HPæ¢å¤",
+                               "HP»Ö¸´",
                                10.0,
                                id,
                                CCommandTarget::kNoTarget,
                                CUnitForce::kSelf);
     id = addTemplateSkill(pSkill);
 
-    pItem = new CItem("RedElixir", "HPæ¢å¤è¯å‰‚", CItem::kConsumable, 1000);
+    pItem = new CItem("RedElixir", "HP»Ö¸´Ò©¼Á", CItem::kConsumable, 1000);
     pItem->addActiveSkill(id);
     pItem->setStackCount(2);
     u->addItem(pItem);
@@ -293,10 +300,9 @@ CMyWorld::CMyWorld()
     u->setCastTarget(CCommandTarget(m_iUnitId));
     u->castSkill(u->getAttackSkillId());
     //atk->setExAttackSpeed(CExtraCoeff(1.0, 0.0));
-
 }
 
-void CMyWorld::onTick(float dt)
+void CMyWorld::step(float dt)
 {
     if (getUnits().size() <= 1 && this->getSkillsCD().empty())
     {
@@ -305,7 +311,7 @@ void CMyWorld::onTick(float dt)
         if (getUnits().size() == 1)
         {
             CUnit* winner = getUnits().begin()->second;
-            LOG("%s(%d/%d)èƒœå‡º\n", winner->getName(), (int)round(winner->getHp()), (int)round(winner->getMaxHp()));
+            LOG("%s(%d/%d)Ê¤³ö\n", winner->getName(), (int)round(winner->getHp()), (int)round(winner->getMaxHp()));
             this->delUnit(getUnits().begin()->first);
         }
 
@@ -315,7 +321,7 @@ void CMyWorld::onTick(float dt)
         return;
     }
 
-    CWorld::onTick(dt);
+    CWorld::step(dt);
 }
 
 void CMyWorld::onActEnd(CUnit* pUnit, void* Data)
@@ -328,16 +334,17 @@ bool CMyApp::applicationDidFinishLaunching()
 {
     setAnimationInterval(1.0 / 60);
 
-    m_pG = new CMyWorld();
-    m_pG->retain();
+    m_pWorld = new CMyWorld();
+    m_pWorld->retain();
+    m_pWorld->init();
 
-    setBursting(false);
+    setBursting(true);
     return true;
 }
 
 void CMyApp::applicationTick(float dt)
 {
-    m_pG->onTick(dt);
+    m_pWorld->step(dt);
 }
 
 long CMyApp::getCurMSec()
