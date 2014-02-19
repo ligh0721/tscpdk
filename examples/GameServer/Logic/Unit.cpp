@@ -335,9 +335,9 @@ CUnit::CUnit(const char* pRootId)
 , m_fHp(1.001f)
 , m_fMaxHp(1.001f)
 , m_pAI(NULL)
+, m_iAttackSkillId(0)
 , m_iTriggerRefCount(0)
 , m_iSuspendRef(0)
-, m_iAttackSkillId(0)
 , m_eArmorType(CArmorValue::kNormal)
 , m_fBaseArmorValue(0.0f)
 , m_bRevivable(false)
@@ -793,7 +793,7 @@ void CUnit::delActiveSkill(int id, bool bNotify)
 
 CActiveSkill* CUnit::getActiveSkill(int id)
 {
-    return m_mapActSkills.getObject(id);
+    return id != 0 ? m_mapActSkills.getObject(id) : NULL;
 }
 
 void CUnit::addPassiveSkill(CPassiveSkill* pSkill, bool bNotify)
@@ -846,7 +846,7 @@ void CUnit::delPassiveSkill(int id, bool bNotify)
 
 CPassiveSkill* CUnit::getPassiveSkill(int id)
 {
-    return m_mapPasSkills.getObject(id);
+    return id != 0 ? m_mapPasSkills.getObject(id) : NULL;
 }
 
 void CUnit::addBuffSkill(CBuffSkill* pSkill, bool bNotify)
@@ -941,7 +941,7 @@ void CUnit::delBuffSkill(int id, bool bNotify)
 
 CBuffSkill* CUnit::getBuffSkill(int id)
 {
-    return m_mapBuffSkills.getObject(id);
+    return id != 0 ? m_mapBuffSkills.getObject(id) : NULL;
 }
 
 void CUnit::updateBuffSkillElapsed(float dt)
@@ -1331,34 +1331,6 @@ void CUnit::resume()
         // TODO: resume
         LOG("%s能动了", getName());
     }
-}
-
-int CUnit::castSkill(int iActiveSkillId)
-{
-    if (isSuspended() || isDead() || iActiveSkillId == 0)
-    {
-        return -1;
-    }
-    
-    CActiveSkill* pSkill = getActiveSkill(iActiveSkillId);
-    if (pSkill == NULL)
-    {
-        return -1;
-    }
-    
-    if (pSkill->getCastTargetType() != CCommandTarget::kNoTarget && getCastTarget().getTargetType() != pSkill->getCastTargetType())
-    {
-        return -1;
-    }
-    
-    // 模拟，简化逻辑
-    if (pSkill->cast() == false)
-    {
-        return -1;
-    }
-    //LOG("%s%s%s..", getName(), getAttackSkillId() == pSkill->getId() ? "的" : "施放了", pSkill->getName());
-    
-    return 0;
 }
 
 float CUnit::getRealArmorValue() const

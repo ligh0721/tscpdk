@@ -386,6 +386,7 @@ public:
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_BUFF_SKILLS, m_mapBuffSkills, BuffSkills);
 
 
+    M_SYNTHESIZE(int, m_iAttackSkillId, AttackSkillId);
     // 下列函数将安全的增删触发器
     
     void addActiveSkill(CActiveSkill* pSkill, bool bNotify = true);
@@ -469,12 +470,7 @@ public:
     virtual void suspend();
     virtual void resume();
     
-    M_SYNTHESIZE(int, m_iAttackSkillId, AttackSkillId);
-    
-    M_SYNTHESIZE_PASS_BY_REF(CCommandTarget, m_oCastTarget, CastTarget);
-    virtual int castSkill(int iActiveSkillId);  // 可能是施法失败，施法中，施法追逐中，所以返回类型为int
-    
-    M_SYNTHESIZE(CArmorValue::ARMOR_TYPE, m_eArmorType, ArmorType);
+     M_SYNTHESIZE(CArmorValue::ARMOR_TYPE, m_eArmorType, ArmorType);
     M_SYNTHESIZE(float, m_fBaseArmorValue, BaseArmorValue);
     M_SYNTHESIZE_PASS_BY_REF(CExtraCoeff, m_oExArmorValue, ExArmorValue)
     float getRealArmorValue() const;

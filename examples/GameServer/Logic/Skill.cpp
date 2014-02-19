@@ -156,9 +156,10 @@ CActiveSkill::CActiveSkill(const char* pRootId, const char* pName, float fCoolDo
 , m_eCastTargetType(eCastType)
 , m_dwEffectiveTypeFlags(dwEffectiveTypeFlags)
 , m_fCastRange(0.0f)
+, m_fCastMinRange(0.0f)
 , m_fCastTargetRadius(0.0f)
-//, m_iCastTargetUnit(0)
 , m_iTemplateProjectile(0)
+, m_bHorizontal(false)
 {
     setDbgClassName("CActiveSkill");
 }
@@ -166,6 +167,9 @@ CActiveSkill::CActiveSkill(const char* pRootId, const char* pName, float fCoolDo
 CActiveSkill::~CActiveSkill()
 {
 }
+
+const float CActiveSkill::CONST_MAX_CAST_BUFFER_RANGE = 50.0f;
+const float CActiveSkill::CONST_MAX_HOR_CAST_Y_RANGE = 5.0f;
 
 bool CActiveSkill::cast()
 {
@@ -195,6 +199,21 @@ bool CActiveSkill::checkConditions()
 
 void CActiveSkill::onUnitCastSkill()
 {
+}
+
+void CActiveSkill::addCastAnimation( int id )
+{
+    m_vecCastAnis.push_back(id);
+}
+
+int CActiveSkill::getRandomAnimation() const
+{
+    if (m_vecCastAnis.empty())
+    {
+        return -1;
+    }
+
+    return m_vecCastAnis[rand() % m_vecCastAnis.size()];
 }
 
 // CPassiveSkill
@@ -232,8 +251,6 @@ bool CBuffSkill::isDone() const
 const float CAttackAct::CONST_MIN_ATTACK_SPEED_INTERVAL = 0.1f; // 0.1s
 const float CAttackAct::CONST_MIN_ATTACK_SPEED_MULRIPLE = 0.2f; // 20%
 const float CAttackAct::CONST_MAX_ATTACK_SPEED_MULRIPLE = 5.0f; // 500%
-const float CAttackAct::CONST_MAX_ATTACK_BUFFER_RANGE = 50.0f;
-const float CAttackAct::CONST_MAX_CLOSE_ATTACK_Y_RANGE = 5.0f;
 
 CAttackAct::CAttackAct(const char* pRootId, const char* pName, float fCoolDown, const CAttackValue& rAttackValue, float fAttackValueRandomRange)
 : CActiveSkill(pRootId, pName, fCoolDown, CCommandTarget::kUnitTarget, CUnitForce::kEnemy)
@@ -267,7 +284,10 @@ void CAttackAct::onUnitDelSkill()
 bool CAttackAct::checkConditions()
 {
     CUnit* o = getOwner();
-    CUnit* t = o->getUnit(o->getCastTarget().getTargetUnit());
+    CUnitDraw2D* d = DCAST(o->getDraw(), CUnitDraw2D*);
+    assert(d != NULL);
+
+    CUnit* t = o->getUnit(d->getCastTarget().getTargetUnit());
     if (t == NULL || t->isDead())
     {
         return false;
@@ -279,7 +299,8 @@ bool CAttackAct::checkConditions()
 void CAttackAct::onUnitCastSkill()
 {
     CUnit* o = getOwner();
-    CUnit* t = o->getUnit(o->getCastTarget().getTargetUnit());
+    CUnitDraw2D* d = DCAST(o->getDraw(), CUnitDraw2D*);
+    CUnit* t = o->getUnit(d->getCastTarget().getTargetUnit());
     
     if (t == NULL)
     {
@@ -430,6 +451,9 @@ CMultiRefObject* CBuffMakerAct::copy() const
 bool CBuffMakerAct::checkConditions()
 {
     CUnit* o = getOwner();
+    CUnitDraw2D* d = DCAST(o->getDraw(), CUnitDraw2D*);
+    assert(d != NULL);
+
     switch (getCastTargetType())
     {
     case CCommandTarget::kNoTarget:
@@ -437,7 +461,7 @@ bool CBuffMakerAct::checkConditions()
         break;
         
     case CCommandTarget::kUnitTarget:
-        m_pTarget = o->getUnit(o->getCastTarget().getTargetUnit());
+        m_pTarget = o->getUnit(d->getCastTarget().getTargetUnit());
         if (m_pTarget != NULL && m_pTarget->isDead())
         {
             m_pTarget = NULL;

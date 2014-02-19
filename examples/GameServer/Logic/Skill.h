@@ -41,6 +41,9 @@ public:
     M_SYNTHESIZE_READONLY(float, m_fInterval, Interval);
     virtual void setInterval(float fInterval);
     M_SYNTHESIZE(float, m_fIntervalElapsed, IntervalElapsed);
+
+    typedef vector<int> VEC_CAST_ANIS;
+    M_SYNTHESIZE_PASS_BY_REF(VEC_CAST_ANIS, m_vecCastAnis, CastAnimations);
     
     // 技能持有者事件响应，只覆被注册的触发器相应的事件函数即可
     // @override
@@ -77,6 +80,9 @@ public:
     CActiveSkill(const char* pRootId, const char* pName, float fCoolDown, CCommandTarget::TARGET_TYPE eCastType = CCommandTarget::kNoTarget, uint32_t dwEffectiveTypeFlags = CUnitForce::kSelf | CUnitForce::kOwn | CUnitForce::kAlly | CUnitForce::kEnemy);
     virtual ~CActiveSkill();
     
+    static const float CONST_MAX_CAST_BUFFER_RANGE;
+    static const float CONST_MAX_HOR_CAST_Y_RANGE;
+
     virtual bool cast();
     virtual bool checkConditions();
     virtual void onUnitCastSkill();
@@ -85,6 +91,7 @@ public:
     M_SYNTHESIZE(CCommandTarget::TARGET_TYPE, m_eCastTargetType, CastTargetType);
     M_SYNTHESIZE(uint32_t, m_dwEffectiveTypeFlags, EffectiveTypeFlags)
     M_SYNTHESIZE(float, m_fCastRange, CastRange);  // 施法距离
+    M_SYNTHESIZE(float, m_fCastMinRange, CastMinRange);  // 最小施法距离
     M_SYNTHESIZE(float, m_fCastTargetRadius, CastTargetRadius);  // 作用范围
     
     // 传递施法参数，并可能在技能后续持续中使用
@@ -92,6 +99,11 @@ public:
     //M_SYNTHESIZE(int, m_iCastTargetUnit, CastTargetUnit);
     
     M_SYNTHESIZE(int, m_iTemplateProjectile, TemplateProjectile);
+
+    M_SYNTHESIZE_BOOL(Horizontal);
+
+    void addCastAnimation(int id);
+    int getRandomAnimation() const;
     
 };
 
@@ -128,8 +140,6 @@ public:
     static const float CONST_MIN_ATTACK_SPEED_INTERVAL;
     static const float CONST_MIN_ATTACK_SPEED_MULRIPLE;
     static const float CONST_MAX_ATTACK_SPEED_MULRIPLE;
-    static const float CONST_MAX_ATTACK_BUFFER_RANGE;
-    static const float CONST_MAX_CLOSE_ATTACK_Y_RANGE;
     
 public:
     CAttackAct(const char* pRootId, const char* pName, float fCoolDown, const CAttackValue& rAttackValue, float fAttackValueRandomRange = 0.15f);

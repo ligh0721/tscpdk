@@ -7,6 +7,7 @@
 
 #include "CommInc.h"
 #include "Draw.h"
+#include "Skill.h"
 
 
 // CCallFuncData
@@ -29,7 +30,7 @@ CUnitDraw::~CUnitDraw()
 {
 }
 
-int CUnitDraw::doAnimation( int id, CCallFuncData* pOnNotifyFrame, int iRepeatTimes, CCallFuncData* pOnAnimationDone, float fSpeed /*= 1.0f*/ )
+int CUnitDraw::doAnimation( ANI_ID id, CCallFuncData* pOnNotifyFrame, int iRepeatTimes, CCallFuncData* pOnAnimationDone, float fSpeed /*= 1.0f*/ )
 {
     return 0;
 }
@@ -47,7 +48,12 @@ bool CUnitDraw::isDoingAction( int id )
     return false;
 }
 
-void CUnitDraw::setFrame(int id)
+void CUnitDraw::stopAllActions()
+{
+
+}
+
+void CUnitDraw::setFrame(FRM_ID id)
 {
 }
 
@@ -66,9 +72,12 @@ void CUnitDraw::loadFrame(int id, const char* pName)
 // CUnitDraw2D
 CUnitDraw2D::CUnitDraw2D( const char* pName )
     : CUnitDraw(pName)
+    , m_fHalfOfWidth(0.0f)
+    , m_fHalfOfHeight(0.0f)
     , m_fBaseMoveSpeed(CONST_MIN_MOVE_SPEED)
     , m_bFixed(false)
-    , m_bFlip(false)
+    , m_iMoveToActionId(0)
+    , m_iMoveActionId(0)
 {
     setDbgClassName("CUnitDraw2D");
 }
@@ -80,6 +89,15 @@ CUnitDraw2D::~CUnitDraw2D()
 int CUnitDraw2D::doMoveTo( const CPoint& rPos, float fDuration, CCallFuncData* pOnMoveToDone, float fSpeed /*= 1.0f*/ )
 {
     return 0;
+}
+
+bool CUnitDraw2D::isFlipX() const
+{
+    return false;
+}
+
+void CUnitDraw2D::setFlipX(bool bFlipX)
+{
 }
 
 const CUnitDraw2D::UNIT_MOVE_PARAMS CUnitDraw2D::CONST_DEFAULT_MOVE_PARAMS;
@@ -136,36 +154,38 @@ void CUnitDraw2D::move(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMoveParams
     
     if (roMoveParams.bAutoFlipX)
     {
-        //u->turnTo(roOrg.x > roPos.x);
+        setFlipX(getPosition().x > roPos.x);
     }
 
     float fMoveSpeed = getBaseMoveSpeed();
     float fDur = getPosition().getDistance(roPos) / max(fMoveSpeed, FLT_EPSILON);
     float fSpeed = getRealMoveSpeed() / fMoveSpeed;
 
-    doMoveTo(roPos,
-             fDur,
-             new CCallFuncData(this,
-                               (FUNC_CALLFUNC_ND)&CUnitDraw2D::onMoveDone),
-             fSpeed);
-
     // 突发移动指令，打断旧移动，打断攻击，打断施法
     if (u->isDoingOr(CUnit::kMoving))
     {
-        stopAction(kActMoveTo);
+        stopAction(getMoveToActionId());
+        setMoveToActionId(0);
     }
     if (u->isDoingOr(CUnit::kCasting) && roMoveParams.bCancelCast)
     {
         //stopCast();
     }
     
-    if (u->isDoingOr(CUnit::kSpinning) == false)
+    int id = doMoveTo(roPos,
+                      fDur,
+                      new CCallFuncData(this,
+                      (FUNC_CALLFUNC_ND)&CUnitDraw2D::onMoveDone),
+                      fSpeed);
+    setMoveToActionId(id);
+    if (getMoveActionId() == 0 && u->isDoingOr(CUnit::kSpinning) == false)
     {
-        doAnimation(kActMove,
-                    NULL,
-                    INFINITE,
-                    NULL,
-                    fSpeed);
+        int id = doAnimation(kActMove,
+                             NULL,
+                             INFINITE,
+                             NULL,
+                             fSpeed);
+        setMoveActionId(id);
     }
 
     u->startDoing(CUnit::kMoving);
@@ -291,8 +311,16 @@ bool CUnitDraw2D::isPathIntended() const
 #endif
 void CUnitDraw2D::stopMove()
 {
-    stopAction(kActMove);
-    stopAction(kActMoveTo);
+    stopAction(getMoveToActionId());
+    setMoveToActionId(0);
+
+    stopAction(getMoveActionId());
+    setMoveActionId(0);
+
+    CUnit* u = getUnit();
+    u->endDoing(CUnit::kMoving);
+
+    setFrame(kFrmDefault);
 }
 
 void CUnitDraw2D::onMoveDone(CMultiRefObject* pUnit, CCallFuncData* pData)
@@ -306,4 +334,140 @@ void CUnitDraw2D::startMoveAct(const CPoint& roPos, const UNIT_MOVE_PARAMS& roMo
 
 void CUnitDraw2D::stopMoveAct()
 {
+}
+
+int CUnitDraw2D::cmdCastSpell( int iActiveSkillId )
+{
+    CUnit* u = getUnit();
+    
+    // 单位合法性判断
+    if (u->isSuspended() || u->isDead())
+    {
+        // 挂起、死亡
+        return -1;
+    }
+
+    // 技能合法性判断
+    CActiveSkill* pSkill = u->getActiveSkill(iActiveSkillId);
+    if (pSkill == NULL)
+    {
+        // 没找到指定主动技能
+        return -1;
+    }
+
+    // 技能目标合法性判断
+    CUnit* t = NULL;
+    CUnitDraw2D* td = NULL;
+    switch (pSkill->getCastTargetType())
+    {
+    case CCommandTarget::kNoTarget:
+        break;
+
+    case CCommandTarget::kUnitTarget:
+        t = u->getUnit(getCastTarget().getTargetUnit());
+        if (t == NULL)
+        {
+            // 目标不存在
+            return -1;
+        }
+
+        td = DCAST(t->getDraw(), CUnitDraw2D*);
+        if (td == NULL)
+        {
+            // 目标不具备2D性
+            return -1;
+        }
+
+        getCastTarget().setTargetPoint(td->getPosition());
+        
+    case CCommandTarget::kPointTarget:
+        if (getCastTarget().getTargetType() != pSkill->getCastTargetType())
+        {
+            // 指定施法目标为点或单位的时候，与技能施法目标不符
+            return -1;
+        }
+        break;
+    }
+
+    if (pSkill->checkConditions() == false)
+    {
+        return -1;
+    }
+
+    // 施法距离合法性
+    if (checkCastTargetDistance(pSkill, getPosition(), td) == false)
+    {
+        // 施法移动
+        if (isFixed())
+        {
+            return -1;
+        }
+        moveToCastPosition(pSkill, td);
+    }
+
+    // 施法
+    castSpell(pSkill);
+
+    return 0;
+}
+
+int CUnitDraw2D::castSpell(CActiveSkill* pSkill)
+{
+    //stopAction()
+    return 0;
+}
+
+bool CUnitDraw2D::checkCastTargetDistance( CActiveSkill* pSkill, const CPoint& roPos, CUnitDraw2D* td )
+{
+    CPoint roPos2;
+    switch (getCastTarget().getTargetType())
+    {
+        case CCommandTarget::kNoTarget:
+            return true;
+
+        case CCommandTarget::kUnitTarget:
+            roPos2 = td->getPosition();
+            break;
+
+        case CCommandTarget::kPointTarget:
+            roPos2 = getCastTarget().getTargetPoint();
+            break;
+    }
+
+                                                              
+    //CCLOG("dis: %.2f, %.2f, %.2f | %.2f", pGm->getDistance(roPos, roPos2) - getHalfOfWidth() - pTarget->getHalfOfWidth(), getAttackMinRange(), getAttackRange(), abs(roPos.y - roPos2.y));
+    if (pSkill->isHorizontal() && abs(roPos.y - roPos2.y) > CActiveSkill::CONST_MAX_HOR_CAST_Y_RANGE)
+    {
+        return false;
+    }
+
+    float fDis = max(roPos.getDistance(roPos2) - getHalfOfWidth() - (td != NULL ? td->getHalfOfWidth() : 0.0f), 0.5f);
+    if (fDis < pSkill->getCastMinRange() || fDis > pSkill->getCastRange())
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void CUnitDraw2D::moveToCastPosition(CActiveSkill* pSkill, CUnitDraw2D* td)
+{
+    //stopAllActions();
+    float fDis = td != NULL ? td->getHalfOfWidth() : 0.0f + getHalfOfWidth() + (pSkill->getCastMinRange() + pSkill->getCastRange()) * 0.5;
+    const CPoint& roPos1 = getPosition();
+    const CPoint& roPos2 = td != NULL ? td->getPosition() : getCastTarget().getTargetPoint();
+
+    UNIT_MOVE_PARAMS oMp;
+    oMp.bIntended = false;
+    if (pSkill->isHorizontal())
+    {
+        // 近战攻击位置修正
+        move(CPoint(roPos2.x + ((roPos1.x > roPos2.x) ? fDis : -fDis), roPos2.y), oMp);
+    }
+    else
+    {
+        // 远程攻击位置修正
+        float fA = -(roPos1 - roPos2).getAngle();
+        move(roPos2 + CPoint(cos(fA) * fDis, sin(-fA) * fDis), oMp);
+    }
 }
