@@ -11,11 +11,21 @@
 #include "MultiRefObject.h"
 #include "Level.h"
 #include "Base.h"
+#include "CommDef.h"
 // 禁止在此处包含Unit.h文件
 
 
-// 攻击数值，由多种类型的攻击组合而成
-class CAttackValue
+class CTypeValue
+{
+public:
+    CTypeValue(int type, float value);
+    M_SYNTHESIZE(int, m_iType, Type);
+    M_SYNTHESIZE(float, m_fValue, Value);
+    
+    void set(int type, float value);
+};
+
+class CAttackValue : public CTypeValue
 {
 public:
     static const int CONST_MAX_ATTACK_TYPE = 4;
@@ -34,27 +44,10 @@ public:
         kCnName = CONST_MAX_NAME_INDEX - 1
     };
     
-    static const char* CONST_ARR_NAME[CONST_MAX_ATTACK_TYPE][CONST_MAX_NAME_INDEX];
-    typedef float ARR_ATTACK_VALUES[CONST_MAX_ATTACK_TYPE];
-    
-public:
-    CAttackValue();
-    CAttackValue(int iCount, ATTACK_TYPE eType1, float fValue1, ...);
-    
-    float getValue(ATTACK_TYPE eType) const;
-    void setValue(ATTACK_TYPE eType, float fValue);
-    void setAttackValue(const CAttackValue& roAttackValue);
-    void setValueZero();
-    
-    static const char* getName(ATTACK_TYPE eType, int iIndex = 0);
-    
-    const CAttackValue& operator=(const CAttackValue& roAttackValue);
-    
-    ARR_ATTACK_VALUES m_afValues;
+    CAttackValue(ATTACK_TYPE type = kPhysical, float value = 0.0f);
 };
 
-// 护甲数值，由多种类型的护甲组合而成
-class CArmorValue
+class CArmorValue : public CTypeValue
 {
 public:
     static const int CONST_MAX_ARMOR_TYPE = 6;
@@ -75,21 +68,52 @@ public:
         kCnName = CONST_MAX_NAME_INDEX - 1
     };
     
-    static const char* CONST_ARR_NAME[CONST_MAX_ARMOR_TYPE][CONST_MAX_NAME_INDEX];
-    typedef float ARR_ARMOR_VALUES[CONST_MAX_ARMOR_TYPE];
+    CArmorValue(ARMOR_TYPE type = kNormal, float value = 0.0f);
+};
+
+
+// 攻击数值，由多种类型的攻击组合而成
+class CMultiAttackValue
+{
+public:
+    static const char* CONST_ARR_NAME[CAttackValue::CONST_MAX_ATTACK_TYPE][CAttackValue::CONST_MAX_NAME_INDEX];
+    typedef float ARR_ATTACK_VALUES[CAttackValue::CONST_MAX_ATTACK_TYPE];
     
 public:
-    CArmorValue();
-    CArmorValue(int iCount, ARMOR_TYPE eType1, float fValue1, ...);
+    CMultiAttackValue();
+    CMultiAttackValue(int iCount, CAttackValue::ATTACK_TYPE eType1, float fValue1, ...);
     
-    float getValue(ARMOR_TYPE eType) const;
-    void setValue(ARMOR_TYPE eType, float fValue);
-    void setArmorValue(const CArmorValue& roArmorValue);
+    float getValue(CAttackValue::ATTACK_TYPE eType) const;
+    void setValue(CAttackValue::ATTACK_TYPE eType, float fValue);
+    void setAttackValue(const CMultiAttackValue& roAttackValue);
     void setValueZero();
     
-    static const char* getName(ARMOR_TYPE eType, int iIndex = 0);
+    static const char* getName(CAttackValue::ATTACK_TYPE eType, int iIndex = 0);
     
-    const CArmorValue& operator=(const CArmorValue& roArmorValue);
+    const CMultiAttackValue& operator=(const CMultiAttackValue& roAttackValue);
+    
+    ARR_ATTACK_VALUES m_afValues;
+};
+
+// 护甲数值，由多种类型的护甲组合而成
+class CMultiArmorValue
+{
+public:
+    static const char* CONST_ARR_NAME[CArmorValue::CONST_MAX_ARMOR_TYPE][CArmorValue::CONST_MAX_NAME_INDEX];
+    typedef float ARR_ARMOR_VALUES[CArmorValue::CONST_MAX_ARMOR_TYPE];
+    
+public:
+    CMultiArmorValue();
+    CMultiArmorValue(int iCount, CArmorValue::ARMOR_TYPE eType1, float fValue1, ...);
+    
+    float getValue(CArmorValue::ARMOR_TYPE eType) const;
+    void setValue(CArmorValue::ARMOR_TYPE eType, float fValue);
+    void setArmorValue(const CMultiArmorValue& roArmorValue);
+    void setValueZero();
+    
+    static const char* getName(CArmorValue::ARMOR_TYPE eType, int iIndex = 0);
+    
+    const CMultiArmorValue& operator=(const CMultiArmorValue& roArmorValue);
     
     ARR_ARMOR_VALUES m_afValues;
 };
@@ -181,10 +205,10 @@ protected:
 
 
 class CProjectile;
-class CSkill;
-class CPassiveSkill;
-class CBuffSkill;
-class CActiveSkill;
+class CAbility;
+class CPassiveAbility;
+class CBuffAbility;
+class CActiveAbility;
 class CWorld;
 class CItem;
 
@@ -216,7 +240,8 @@ public:
     
     inline virtual void onUnitChangeLevel(int iChanged) {}
     inline virtual void onUnitRevive() {}
-    inline virtual void onUnitDie() {}
+    inline virtual void onUnitDying() {}
+    inline virtual void onUnitDead() {}
     inline virtual void onUnitChangeHp(float fChanged) {}
     inline virtual void onUnitTick(float dt) {}
     inline virtual CAttackData* onUnitAttackTarget(CAttackData* pAttack, CUnit* pTarget) { return pAttack; }
@@ -224,19 +249,26 @@ public:
     inline virtual void onUnitDamaged(CAttackData* pAttack, CUnit* pSource) {}
     inline virtual void onUnitDamagedDone(float fDamage, CUnit* pSource) {}
     inline virtual void onUnitDamageTargetDone(float fDamage, CUnit* pTarget) {}
-    inline virtual void onUnitDestroyProjectile(CProjectile* pProjectile) {}
-    inline virtual void onUnitAddActiveSkill(CActiveSkill* pSkill) {}
-    inline virtual void onUnitDelActiveSkill(CActiveSkill* pSkill) {}
-    inline virtual void onUnitAddPassiveSkill(CPassiveSkill* pSkill) {}
-    inline virtual void onUnitDelPassiveSkill(CPassiveSkill* pSkill) {}
-    inline virtual void onUnitAddBuffSkill(CBuffSkill* pSkill) {}
-    inline virtual void onUnitDelBuffSkill(CBuffSkill* pSkill) {}
-    inline virtual void onUnitSkillReady(CSkill* pSkill) {}
+    inline virtual void onUnitProjectileEffect(CProjectile* pProjectile) {}
+    inline virtual void onUnitAddActiveAbility(CActiveAbility* pAbility) {}
+    inline virtual void onUnitDelActiveAbility(CActiveAbility* pAbility) {}
+    inline virtual void onUnitAddPassiveAbility(CPassiveAbility* pAbility) {}
+    inline virtual void onUnitDelPassiveAbility(CPassiveAbility* pAbility) {}
+    inline virtual void onUnitAddBuffAbility(CBuffAbility* pAbility) {}
+    inline virtual void onUnitDelBuffAbility(CBuffAbility* pAbility) {}
+    inline virtual void onUnitAbilityReady(CAbility* pAbility) {}
     inline virtual void onUnitAddItem(int iIndex) {}
     inline virtual void onUnitDelItem(int iIndex) {}
     //inline virtual void onUnitChangeItemStackCount(CItem* pItem, int iChange) {}
     
     M_SYNTHESIZE(CUnit*, m_pNotifyUnit, NotifyUnit);
+};
+
+class CDefaultAI : public CUnitEventAdapter
+{
+public:
+    virtual void onUnitTick(float dt);
+    virtual CAttackData* onUnitAttacked(CAttackData* pAttack, CUnit* pSource);
 };
 
 class CUnitDraw;
@@ -255,8 +287,8 @@ public:
     M_SYNTHESIZE(CWorld*, m_pWorld, World);
     
     CUnit* getUnit(int id);
-    void skillCD(CSkill* pSkill);
-    void updateSkillCD(int id);
+    void abilityCD(CAbility* pAbility);
+    void updateAbilityCD(int id);
     
     M_SYNTHESIZE_STR(Name);
     
@@ -276,7 +308,9 @@ public:
     // 复活时被通知
     virtual void onRevive();
     // 死亡时被通知
-    virtual void onDie();
+    virtual void onDying();
+    // 死亡后被通知
+    virtual void onDead();
     // 血量变化时被通知
     virtual void onChangeHp(float fChanged);
     // 每个游戏刻被通知
@@ -293,17 +327,17 @@ public:
     // 攻击命中时，攻击者被通知
     virtual void onDamageTargetDone(float fDamage, CUnit* pTarget, uint32_t dwTriggerMask);
     // 攻击数据消除时被通知，通常由投射物携带攻击数据，二者生存期一致
-    virtual void onDestroyProjectile(CProjectile* pProjectile);
+    virtual void onProjectileEffect(CProjectile* pProjectile);
     
-    virtual void onAddActiveSkill(CActiveSkill* pSkill);
-    virtual void onDelActiveSkill(CActiveSkill* pSkill);
-    virtual void onAddPassiveSkill(CPassiveSkill* pSkill);
-    virtual void onDelPassiveSkill(CPassiveSkill* pSkill);
-    virtual void onAddBuffSkill(CBuffSkill* pSkill);
-    virtual void onDelBuffSkill(CBuffSkill* pSkill);
+    virtual void onAddActiveAbility(CActiveAbility* pAbility);
+    virtual void onDelActiveAbility(CActiveAbility* pAbility);
+    virtual void onAddPassiveAbility(CPassiveAbility* pAbility);
+    virtual void onDelPassiveAbility(CPassiveAbility* pAbility);
+    virtual void onAddBuffAbility(CBuffAbility* pAbility);
+    virtual void onDelBuffAbility(CBuffAbility* pAbility);
     
     // 技能CD结束时被通知
-    virtual void onSkillReady(CSkill* pSkill);  // 以后将区分出onItemReady
+    virtual void onAbilityReady(CAbility* pAbility);  // 以后将区分出onItemReady
     
     virtual void onAddItem(int iIndex);
     virtual void onDelItem(int iIndex);
@@ -320,24 +354,25 @@ public:
     ////////////////////////  trigger /////////////////    
     enum TRIGGER_FLAG_BIT
     {
-        kReviveTrigger = 1 << 0,
-        kDieTrigger = 1 << 1,
-        kHpChangeTrigger = 1 << 2,
-        kTickTrigger = 1 << 3,
-        kAttackTargetTrigger = 1 << 4,
-        kAttackedTrigger = 1 << 5,
-        kDamagedSurfaceTrigger = 1 << 6,
-        kDamagedInnerTrigger = 1 << 7,
-        kDamagedDoneTrigger = 1 << 8,
-        kDamageTargetDoneTrigger = 1 << 9,
-        kDestroyProjectileTrigger = 1 << 10
+        kOnReviveTrigger = 1 << 0,
+        kOnDyingTrigger = 1 << 1,
+        kOnDeadTrigger = 1 << 2,
+        kOnChangeHpTrigger = 1 << 3,
+        kOnTickTrigger = 1 << 4,
+        kOnAttackTargetTrigger = 1 << 5,
+        kOnAttackedTrigger = 1 << 6,
+        kOnDamagedSurfaceTrigger = 1 << 7,
+        kOnDamagedInnerTrigger = 1 << 8,
+        kOnDamagedDoneTrigger = 1 << 9,
+        kOnDamageTargetDoneTrigger = 1 << 10,
+        kOnProjectileEffectTrigger = 1 << 11
     };
     
     enum TRIGGER_MASK
     {
         kNoMasked = 0,
         kMaskAll = 0xFFFFFFFF,
-        kMaskActiveTrigger = kAttackTargetTrigger | kDamageTargetDoneTrigger
+        kMaskActiveTrigger = kOnAttackTargetTrigger | kOnDamageTargetDoneTrigger
     };
     
     
@@ -371,69 +406,70 @@ public:
     
     // 底层伤害函数，直接扣除指定量的HP值
     // 触发伤害源的 onDamaeTarget
-    // 调用 setHp，从而会触发 onHpChange，可能会触发onDie
+    // 调用 setHp，从而会触发 onChangeHp，可能会触发onDying
     void damagedBot(float fDamage, CUnit* pSource, uint32_t dwTriggerMask = kNoMasked);
     
     float calcDamage(CAttackValue::ATTACK_TYPE eAttackType, float fAttackValue, CArmorValue::ARMOR_TYPE eArmorType, float fArmorValue);
     
     
-    typedef CMultiRefMap<CActiveSkill*> MAP_ACTIVE_SKILLS;
-    typedef CMultiRefMap<CPassiveSkill*> MAP_PASSIVE_SKILLS;
-    typedef CMultiRefMap<CBuffSkill*> MAP_BUFF_SKILLS;
+    typedef CMultiRefMap<CActiveAbility*> MAP_ACTIVE_ABILITYS;
+    typedef CMultiRefMap<CPassiveAbility*> MAP_PASSIVE_ABILITYS;
+    typedef CMultiRefMap<CBuffAbility*> MAP_BUFF_ABILITYS;
     
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_ACTIVE_SKILLS, m_mapActSkills, ActiveSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_PASSIVE_SKILLS, m_mapPasSkills, PassiveSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_BUFF_SKILLS, m_mapBuffSkills, BuffSkills);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_ACTIVE_ABILITYS, m_mapActAbilitys, ActiveAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_PASSIVE_ABILITYS, m_mapPasAbilitys, PassiveAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_BUFF_ABILITYS, m_mapBuffAbilitys, BuffAbilitys);
 
 
-    M_SYNTHESIZE(int, m_iAttackSkillId, AttackSkillId);
+    M_SYNTHESIZE(int, m_iAttackAbilityId, AttackAbilityId);
     // 下列函数将安全的增删触发器
     
-    void addActiveSkill(CActiveSkill* pSkill, bool bNotify = true);
-    void addActiveSkill(int id, int iLevel = 1);
-    void delActiveSkill(int id, bool bNotify = true);
-    CActiveSkill* getActiveSkill(int id);
+    void addActiveAbility(CActiveAbility* pAbility, bool bNotify = true);
+    void addActiveAbility(int id, int iLevel = 1);
+    void delActiveAbility(int id, bool bNotify = true);
+    CActiveAbility* getActiveAbility(int id);
     
-    void addPassiveSkill(CPassiveSkill* pSkill, bool bNotify = true);
-    void addPassiveSkill(int id, int iLevel = 1);
-    void delPassiveSkill(int id, bool bNotify = true);
-    CPassiveSkill* getPassiveSkill(int id);
+    void addPassiveAbility(CPassiveAbility* pAbility, bool bNotify = true);
+    void addPassiveAbility(int id, int iLevel = 1);
+    void delPassiveAbility(int id, bool bNotify = true);
+    CPassiveAbility* getPassiveAbility(int id);
     
-    void addBuffSkill(CBuffSkill* pSkill, bool bNotify = true);
-    void addBuffSkill(int id, int iSrcUnit, int iLevel = 1);
-    void delBuffSkill(int id, bool bNotify = true);
-    CBuffSkill* getBuffSkill(int id);
+    void addBuffAbility(CBuffAbility* pAbility, bool bNotify = true);
+    void addBuffAbility(int id, int iSrcUnit, int iLevel = 1);
+    void delBuffAbility(int id, bool bNotify = true);
+    CBuffAbility* getBuffAbility(int id);
     
 protected:
-    void updateBuffSkillElapsed(float dt);
+    void updateBuffAbilityElapsed(float dt);
     
 public:
-    typedef CMultiRefMap<CSkill*> MAP_TRIGGER_SKILLS;
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnAttackTargetTriggerSkills, OnAttackTargetTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnAttackedTriggerSkills, OnAttackedTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDamagedSurfaceTriggerSkills, OnDamagedSurfaceTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDamagedInnerTriggerSkills, OnDamagedInnerTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDamagedDoneTriggerSkills, OnDamagedDoneTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDamageTargetDoneTriggerSkills, OnDamageTargetDoneTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnHpChangeTriggerSkills, OnHpChangeTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnReviveTriggerSkills, OnReviveTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDieTriggerSkills, OnDieTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnTickTriggerSkills, OnTickTriggerSkills);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapOnDestroyProjectileTriggerSkills, OnDestroyProjectileTriggerSkills);
+    typedef CMultiRefMap<CAbility*> MAP_TRIGGER_ABILITYS;
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnAttackTargetTriggerAbilitys, OnAttackTargetTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnAttackedTriggerAbilitys, OnAttackedTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDamagedSurfaceTriggerAbilitys, OnDamagedSurfaceTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDamagedInnerTriggerAbilitys, OnDamagedInnerTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDamagedDoneTriggerAbilitys, OnDamagedDoneTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDamageTargetDoneTriggerAbilitys, OnDamageTargetDoneTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnChangeHpTriggerAbilitys, OnChangeHpTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnReviveTriggerAbilitys, OnReviveTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDyingTriggerAbilitys, OnDyingTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnDeadTriggerAbilitys, OnDeadTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnTickTriggerAbilitys, OnTickTriggerAbilitys);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapOnProjectileEffectTriggerAbilitys, OnProjectileEffectTriggerAbilitys);
     
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapTriggerSkillsToAdd, TriggerSkillsToAdd);
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_SKILLS, m_mapTriggerSkillsToDel, TriggerSkillsToDel);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapTriggerAbilitysToAdd, TriggerAbilitysToAdd);
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_TRIGGER_ABILITYS, m_mapTriggerAbilitysToDel, TriggerAbilitysToDel);
     
 public:
     // 添加触发器
-    void addSkillToTriggers(CSkill* pSkill);
+    void addAbilityToTriggers(CAbility* pAbility);
     
     // 删除触发器
-    void delSkillFromTriggers(CSkill* pSkill);
+    void delAbilityFromTriggers(CAbility* pAbility);
     
 protected:
     // 只能在triggerFree的时候调用
-    void updateTriggerSkillsWhenTriggerFree();
+    void updateTriggerAbilitysWhenTriggerFree();
     
     // trigger之间是有可能存在嵌套关系的
     // 为了安全增删trigger，需要维护一个引用计数
@@ -444,8 +480,9 @@ protected:
     
     // 触发器链的触发，内部调用
     void triggerOnRevive();
-    void triggerOnDie();
-    void triggerOnHpChange(float fChanged);
+    void triggerOnDying();
+    void triggerOnDead();
+    void triggerOnChangeHp(float fChanged);
     void triggerOnTick(float dt);
     CAttackData* triggerOnAttackTarget(CAttackData* pAttack, CUnit* pTarget);
     CAttackData* triggerOnAttacked(CAttackData* pAttack, CUnit* pSource);
@@ -453,16 +490,16 @@ protected:
     void triggerOnDamagedInner(CAttackData* pAttack, CUnit* pSource);
     void triggerOnDamagedDone(float fDamage, CUnit* pSource);
     void triggerOnDamageTargetDone(float fDamage, CUnit* pTarget);
-    void triggerOnDestroyProjectile(CProjectile* pProjectile);
+    void triggerOnProjectileEffect(CProjectile* pProjectile);
     
     // 为单位添加/删除技能
-    //void addSkill(CSkill* pSkill);
-    //void delSkill(CSkill* pSkill);
+    //void addAbility(CAbility* pAbility);
+    //void delAbility(CAbility* pAbility);
     
     // 为单位添加/删除/覆盖删除BUFF
-    //void addBuff(CBuffSkill* pBuff, bool bForce = false);
-    //void delBuff(CBuffSkill* pBuff, bool bAfterTriggerLoop = true);
-    //void coverBuff(CBuffSkill* pBuff);
+    //void addBuff(CBuffAbility* pBuff, bool bForce = false);
+    //void delBuff(CBuffAbility* pBuff, bool bAfterTriggerLoop = true);
+    //void coverBuff(CBuffAbility* pBuff);
         
 public:
     M_SYNTHESIZE_READONLY(int, m_iSuspendRef, SuspendRef);
@@ -470,14 +507,13 @@ public:
     virtual void suspend();
     virtual void resume();
     
-     M_SYNTHESIZE(CArmorValue::ARMOR_TYPE, m_eArmorType, ArmorType);
-    M_SYNTHESIZE(float, m_fBaseArmorValue, BaseArmorValue);
+    M_SYNTHESIZE_PASS_BY_REF(CArmorValue, m_oBaseArmor, BaseArmor);
     M_SYNTHESIZE_PASS_BY_REF(CExtraCoeff, m_oExArmorValue, ExArmorValue)
     float getRealArmorValue() const;
     
     M_SYNTHESIZE_BOOL(Revivable);
     
-    ///////////////////////// Item //////////////////////
+    ///////////////////////// item //////////////////////
     typedef CMultiRefVec<CItem*> VEC_ITEMS;
     M_SYNTHESIZE_READONLY_PASS_BY_REF(VEC_ITEMS, m_vecItems, Items);
     void setPackageSize(int iSize);
@@ -489,9 +525,9 @@ public:
     /////////////////////// doing - begin ////////////////////////////
     enum DOING_FLAG_BIT
     {
-        kSuspended = 1 << 16,
+        kDying = 1 << 16,
         kMoving = 1 << 17,
-        kIntended = 1 << 18,
+        kObstinate = 1 << 18,
         kAttacking = 1 << 19,
         kCasting = 1 << 20,
         kSpinning = 1 << 21
@@ -519,7 +555,7 @@ public:
         kActMove,
         kActAttack,
         kActAttackEffect,
-        kActDie,
+        kActDying,
         kActCast,
         kActCastEffect,
         kActSpin
@@ -542,79 +578,68 @@ public:
     
 };
 
-class CProjectile : public CUnit
-{
-public:
-    CProjectile(const char* pRootId);
-    virtual ~CProjectile();
-
-    // 单位和抛射物非紧密联系，即单位死亡后抛射物不一定会释放，所以必须通过ID引用
-    M_SYNTHESIZE(int, m_iSourceUnit, SourceUnit);
-    M_SYNTHESIZE(int, m_iStartUnit, StartUnit);
-    M_SYNTHESIZE(int, m_iTargetUnit, TargetUnit);
-    M_SYNTHESIZE_PASS_BY_REF(CPoint, m_oTargetPoint, TargetPoint);
-    
-    enum PENALTY_FLAG_BIT
-    {
-        kOnDie = 1 << 0,
-        kOnContact = 1 << 1
-    };
-    
-    M_SYNTHESIZE(uint32_t, m_dwPenaltyFlags, PenaltyFlags);
-    bool hasPenaltyType(PENALTY_FLAG_BIT ePenaltyType) const;
-    
-    
-protected:
-
-};
-
 class CWorld : public CMultiRefObject
 {
 public:
     CWorld();
     virtual ~CWorld();
+    
+    M_SYNTHESIZE(int, m_iScriptHandler, ScriptHandler);
+    static lua_State* getLuaHandle();
+    void addScriptSearchPath(const char* pPath);
+    bool loadScript(const char* pName);
 
-    virtual void onInit();
+    virtual bool onInit();
     virtual void onTick(float dt);
     virtual void onAddUnit(CUnit* pUnit);
     virtual void onDelUnit(CUnit* pUnit);
+    virtual void onAddProjectile(CProjectile* pProjectile);
+    virtual void onDelProjectile(CProjectile* pProjectile);
 
-    void init();
+    bool init();
+
+    M_SYNTHESIZE(int, m_iControlUnit, ControlUnit);
     
     typedef CMultiRefMap<CUnit*> MAP_UNITS;
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_UNITS, m_mapUnits, Units);
     void addUnit(CUnit* pUnit);
-    void delUnit(MAP_UNITS::iterator it, bool bRevivable = false);
-    void delUnit(int id);
+    void delUnit(int id, bool bRevivable = false);
     CUnit* getUnit(int id) const;
     
     M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_UNITS, m_mapUnitsToRevive, UnitsToRevive);
     void reviveUnit(int id, float fHp);
+    CUnit* getUnitToRevive(int id);
     
-    typedef CMultiRefMap<CSkill*> MAP_SKILLS;
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_SKILLS, m_mapSkillsCD, SkillsCD);
-    void addSkillCD(CSkill* pSkill);
-    void delSkillCD(int id);
-    bool isSkillCD(int id) const;
-    CSkill* getSkillCD(int id) const;
-    void updateSkillCD(int id);
+    typedef CMultiRefMap<CAbility*> MAP_ABILITYS;
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_ABILITYS, m_mapAbilitysCD, AbilitysCD);
+    void addAbilityCD(CAbility* pAbility);
+    void delAbilityCD(int id);
+    bool isAbilityCD(int id) const;
+    CAbility* getAbilityCD(int id) const;
+    void updateAbilityCD(int id);
     
 protected:
-    void cleanSkillsCD(CUnit* pUnit);
-    void skillReady(CSkill* pSkill);
+    void cleanAbilitysCD(CUnit* pUnit);
+    void abilityReady(CAbility* pAbility);
     
 public:
     virtual void step(float dt);
 
-    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_SKILLS, m_mapTemplateSkills, TemplateSkills);
-    int addTemplateSkill(CSkill* pSkill);
-    void loadTemplateSkills();
-    
-    CSkill* copySkill(int id) const;
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_ABILITYS, m_mapTemplateAbilitys, TemplateAbilitys);
+    int addTemplateAbility(CAbility* pAbility);
+    void loadTemplateAbilitys();
+    CAbility* copyAbility(int id) const;
+
+    typedef CMultiRefMap<CProjectile*> MAP_PROJECTILES;
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_PROJECTILES, m_mapTemplateProjectiles, TemplateProjectiles);
+    int addTemplateProjectile(CProjectile* pProjectile);
+    CProjectile* copyProjectile(int id) const;
+
+    M_SYNTHESIZE_READONLY_PASS_BY_REF(MAP_PROJECTILES, m_mapProjectiles, Projectiles);
+    void addProjectile(CProjectile* pProjectile);
+    void delProjectile(int id);
 
 };
-
-
 
 
 

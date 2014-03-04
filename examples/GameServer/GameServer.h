@@ -20,7 +20,7 @@ class CMyWorld : public CWorld
 public:
     CMyWorld();
     
-    virtual void onInit();
+    virtual bool onInit();
 
     virtual void step(float dt);
     
